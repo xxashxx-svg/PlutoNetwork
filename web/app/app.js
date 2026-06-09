@@ -1,5 +1,5 @@
 import { makeClient, toB64, fromB64, toHex, encodeText, decodeText } from "./crypto.js";
-import { connect, sendFrame, publishKeyPackage, grabKeyPackage } from "./net.js";
+import { connect, sendFrame, publishKeyPackage, grabKeyPackage, register, login, whoami, setToken } from "./net.js";
 
 // ---------- state ----------
 let me = null;
@@ -11,33 +11,88 @@ const wireLog = []; // last frames, for the encryption details panel
 
 const $ = (s) => document.querySelector(s);
 
-// ---------- boot ----------
+// ---------- theme ----------
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  localStorage.setItem("veil.theme", t);
+}
+applyTheme(
+  localStorage.getItem("veil.theme") ||
+    (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+);
+$("#theme-toggle").addEventListener("click", () =>
+  applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark")
+);
+
+// ---------- auth + boot ----------
+const hint = (msg, err = false) => {
+  const el = $("#gate-hint");
+  el.classList.toggle("err", err);
+  el.textContent = msg;
+};
+
+async function enter(name, token) {
+  setToken(token);
+  localStorage.setItem("veil.session", JSON.stringify({ name, token }));
+  hint("Unlocking your encryption keys…");
+  client = await makeClient(name);
+  me = name;
+  // publish a stack of key packages so several people can invite us
+  for (let i = 0; i < 5; i++) await publishKeyPackage(toB64(client.key_package()));
+  await linkUp();
+  $("#me-name").textContent = me;
+  $("#gate").classList.add("lifted");
+  $("#shell").hidden = false;
+}
+
 $("#gate-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const name = $("#gate-name").value.trim().toLowerCase();
-  if (!name) return;
-  const hint = $("#gate-hint");
-  hint.classList.remove("err");
-  hint.textContent = "Creating your encryption keys…";
+  const pass = $("#gate-pass").value;
+  if (!name || !pass) return;
   try {
-    client = await makeClient(name);
-    me = name;
-    // publish a stack of key packages so several people can invite us
-    for (let i = 0; i < 5; i++) await publishKeyPackage(me, toB64(client.key_package()));
-    await linkUp();
-    $("#me-name").textContent = me;
-    $("#gate").classList.add("lifted");
-    $("#shell").hidden = false;
+    hint("Signing in…");
+    const d = await login(name, pass);
+    await enter(d.user, d.token);
   } catch (err) {
-    hint.classList.add("err");
-    hint.textContent = err.message || String(err);
+    hint(err.message || String(err), true);
   }
 });
+
+$("#register-btn").addEventListener("click", async () => {
+  const name = $("#gate-name").value.trim().toLowerCase();
+  const pass = $("#gate-pass").value;
+  if (!name || !pass) return hint("Pick a username and a password first.", true);
+  try {
+    hint("Creating your account…");
+    const d = await register(name, pass);
+    await enter(d.user, d.token);
+  } catch (err) {
+    hint(err.message || String(err), true);
+  }
+});
+
+$("#signout").addEventListener("click", () => {
+  localStorage.removeItem("veil.session");
+  location.reload();
+});
+
+// resume a saved session if the token is still good
+(async () => {
+  try {
+    const saved = JSON.parse(localStorage.getItem("veil.session") || "null");
+    if (saved?.token && (await whoami(saved.token)) === saved.name) {
+      await enter(saved.name, saved.token);
+    }
+  } catch {
+    /* token expired or relay restarted — sign in normally */
+  }
+})();
 
 // reconnect forever — the relay queues our mail while we're gone
 async function linkUp() {
   try {
-    ws = await connect(me, onFrame, () => {
+    ws = await connect(onFrame, () => {
       $("#conn-dot").classList.remove("live");
       setTimeout(linkUp, 1500);
     });

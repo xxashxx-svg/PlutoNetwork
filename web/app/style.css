@@ -10,9 +10,30 @@
   --blue-soft: #eaf1ff;
   --green: #2faf68;
   --red: #e05252;
+  --note-bg: rgba(20, 30, 50, 0.07);
+  --note-text: #5d6878;
+  --scroll: #ccd3dc;
   --font: "Figtree", system-ui, sans-serif;
   --mono: "JetBrains Mono", monospace;
   --shadow: 0 1px 2px rgba(20, 30, 50, 0.06), 0 4px 16px rgba(20, 30, 50, 0.05);
+}
+
+:root[data-theme="dark"] {
+  --bg: #0e1320;
+  --surface: #171e2e;
+  --chat-bg: #0b101a;
+  --line: #242d42;
+  --text: #e9edf5;
+  --dim: #8d97ab;
+  --blue: #3d7bfd;
+  --blue-deep: #2f63d6;
+  --blue-soft: rgba(61, 123, 253, 0.16);
+  --green: #4cc380;
+  --red: #e9606a;
+  --note-bg: rgba(255, 255, 255, 0.08);
+  --note-text: #9aa4b6;
+  --scroll: #2c374f;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 4px 18px rgba(0, 0, 0, 0.3);
 }
 
 * { box-sizing: border-box; margin: 0; }
@@ -28,9 +49,54 @@ body {
   font-size: 14.5px;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
+  transition: background 0.25s;
 }
 
 button { font-family: var(--font); }
+
+/* theme toggle — floats over everything, works on the sign-in screen too */
+#theme-toggle {
+  position: fixed;
+  top: 14px;
+  right: 16px;
+  z-index: 50;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--dim);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: color 0.15s, border-color 0.15s;
+}
+#theme-toggle:hover { color: var(--blue); border-color: var(--blue); }
+#theme-toggle .ic-moon { display: none; }
+:root[data-theme="dark"] #theme-toggle .ic-sun { display: none; }
+:root[data-theme="dark"] #theme-toggle .ic-moon { display: block; }
+
+.rail-tools { display: flex; align-items: center; gap: 10px; }
+.icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--dim);
+  padding: 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: color 0.15s, background 0.15s;
+}
+.icon-btn:hover { color: var(--red); background: var(--bg); }
+
+#gate-form .secondary {
+  background: transparent;
+  color: var(--blue);
+  border: 1px solid var(--line);
+}
+#gate-form .secondary:hover { background: var(--blue-soft); }
 
 /* ---------- sign in ---------- */
 #gate {
@@ -289,8 +355,8 @@ button { font-family: var(--font); }
 .msg.out .bubble .t { color: rgba(255, 255, 255, 0.7); }
 .msg.sys { align-self: center; max-width: 86%; }
 .msg.sys .note {
-  background: rgba(20, 30, 50, 0.07);
-  color: #5d6878;
+  background: var(--note-bg);
+  color: var(--note-text);
   font-size: 12px;
   border-radius: 12px;
   padding: 4px 12px;
@@ -334,5 +400,5 @@ button { font-family: var(--font); }
 #composer button:active { transform: scale(0.94); }
 
 ::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-thumb { background: #ccd3dc; border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: var(--scroll); border-radius: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }

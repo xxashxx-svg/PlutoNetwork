@@ -10,6 +10,15 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <button id="theme-toggle" title="Toggle dark mode">
+    <svg class="ic-sun" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="12" cy="12" r="4.5" />
+      <path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8" />
+    </svg>
+    <svg class="ic-moon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+    </svg>
+  </button>
   <!-- sign in -->
   <div id="gate">
     <div class="gate-card">
@@ -22,10 +31,12 @@
       <h1>Veil</h1>
       <p class="tagline">Simple, private messaging.<br />Every message is end-to-end encrypted.</p>
       <form id="gate-form" autocomplete="off">
-        <input id="gate-name" type="text" placeholder="Your name" maxlength="24" spellcheck="false" required />
-        <button type="submit">Continue</button>
+        <input id="gate-name" type="text" placeholder="Username" maxlength="24" spellcheck="false" autocomplete="username" required />
+        <input id="gate-pass" type="password" placeholder="Password" minlength="6" autocomplete="current-password" required />
+        <button type="submit">Sign in</button>
+        <button type="button" id="register-btn" class="secondary">Create account</button>
       </form>
-      <p class="gate-hint" id="gate-hint">Your encryption keys are created on this device and never leave it.</p>
+      <p class="gate-hint" id="gate-hint">New here? Create an account — your encryption keys are made on this device and never leave it.</p>
     </div>
   </div>
 
@@ -34,7 +45,15 @@
     <aside id="rail">
       <header class="rail-head">
         <span class="rail-brand">Veil</span>
-        <span class="conn" id="conn-dot" title="connection status"></span>
+        <span class="rail-tools">
+          <span class="conn" id="conn-dot" title="connection status"></span>
+          <button id="signout" class="icon-btn" title="Sign out">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <path d="M16 17l5-5-5-5M21 12H9" />
+            </svg>
+          </button>
+        </span>
       </header>
       <div class="me">
         <span class="me-label">Signed in as</span>

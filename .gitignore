@@ -5,6 +5,7 @@ Cargo.lock
 **/pkg
 /server/_build
 /server/deps
+/server/data
 .env
 *.local
 .DS_Store
