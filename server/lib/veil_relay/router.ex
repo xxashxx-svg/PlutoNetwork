@@ -1,9 +1,26 @@
 defmodule VeilRelay.Router do
   use Plug.Router
 
+  plug :cors
   plug :match
   plug Plug.Parsers, parsers: [:json], json_decoder: Jason
   plug :dispatch
+
+  # browser clients live on a different origin than the relay
+  defp cors(conn, _opts) do
+    conn =
+      merge_resp_headers(conn, [
+        {"access-control-allow-origin", "*"},
+        {"access-control-allow-methods", "GET, POST, OPTIONS"},
+        {"access-control-allow-headers", "content-type"}
+      ])
+
+    if conn.method == "OPTIONS" do
+      conn |> send_resp(204, "") |> halt()
+    else
+      conn
+    end
+  end
 
   # clients publish key packages so others can invite them
   post "/keypackages" do
@@ -33,7 +50,7 @@ defmodule VeilRelay.Router do
         send_resp(conn, 400, "need ?user=")
 
       user ->
-        WebSockAdapter.upgrade(conn, VeilRelay.Socket, %{user: user}, timeout: 60_000)
+        WebSockAdapter.upgrade(conn, VeilRelay.Socket, %{user: user}, timeout: 300_000)
     end
   end
 

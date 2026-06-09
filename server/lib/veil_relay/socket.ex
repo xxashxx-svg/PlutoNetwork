@@ -14,6 +14,10 @@ defmodule VeilRelay.Socket do
   @impl true
   def handle_in({text, [opcode: :text]}, state) do
     case Jason.decode(text) do
+      # keepalive — any frame resets the idle timer
+      {:ok, %{"ping" => _}} ->
+        {:ok, state}
+
       # sender knows the roster (MLS clients track membership) and
       # addresses recipients explicitly. blob = base64 ciphertext.
       # kind is client-side routing ("welcome" vs "msg") — opaque to us
