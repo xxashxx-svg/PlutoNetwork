@@ -1,0 +1,18 @@
+[package]
+name = "veil-wasm"
+version = "0.1.0"
+edition = "2021"
+license = "AGPL-3.0-only"
+description = "wasm bridge for veil-core, used by the web client"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+veil-core = { path = "../veil-core" }
+wasm-bindgen = "0.2"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }
+# openmls needs its js feature on wasm (timers + rng in the browser)
+openmls = { version = "0.6", features = ["js"] }

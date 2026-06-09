@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>veil — wasm round-trip demo</title>
+  <style>
+    body { font-family: ui-monospace, monospace; background: #0d1117; color: #c9d1d9; max-width: 720px; margin: 40px auto; padding: 0 16px; }
+    h1 { font-size: 1.2rem; }
+    .log { white-space: pre-wrap; background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; }
+    .ok { color: #3fb950; }
+    .bad { color: #f85149; }
+  </style>
+</head>
+<body>
+  <h1>veil wasm demo — two clients, one page, zero plaintext on the wire</h1>
+  <div id="log" class="log">loading wasm…</div>
+
+  <script type="module">
+    // build first: wasm-pack build crates/veil-wasm --target web
+    // then serve the repo root: npx serve .  (or python -m http.server)
+    import init, { VeilClient } from "../crates/veil-wasm/pkg/veil_wasm.js";
+
+    const log = (msg, cls = "") => {
+      const el = document.getElementById("log");
+      el.innerHTML += `\n<span class="${cls}">${msg}</span>`;
+    };
+    const text = (bytes) => new TextDecoder().decode(bytes);
+
+    try {
+      await init();
+      document.getElementById("log").textContent = "wasm loaded ✔";
+
+      const alice = new VeilClient("alice");
+      const bob = new VeilClient("bob");
+      log("made alice + bob");
+
+      const chatId = alice.create_chat();
+      const invite = alice.invite(chatId, bob.key_package());
+      bob.join(invite.welcome);
+      log("bob joined alice's chat via welcome");
+
+      const wire = alice.send(chatId, new TextEncoder().encode("hey bob, this never touched a server in plaintext"));
+      log(`wire bytes (what a server would see): ${wire.length} bytes of ciphertext`);
+
+      const got = bob.recv(wire);
+      log(`bob decrypted: "${text(got.plaintext)}" (from: ${got.sender})`, "ok");
+
+      // sanity: the plaintext must not appear in the wire bytes
+      const hay = new TextDecoder("latin1").decode(wire);
+      if (hay.includes("hey bob")) {
+        log("PLAINTEXT LEAKED INTO WIRE BYTES — this is a bug", "bad");
+      } else {
+        log("checked: plaintext is nowhere in the wire bytes ✔", "ok");
+      }
+
+      const reply = bob.send(chatId, new TextEncoder().encode("crazy. replying encrypted."));
+      log(`alice decrypted: "${text(alice.recv(reply).plaintext)}"`, "ok");
+
+      log("\nround trip complete — E2EE working in the browser", "ok");
+    } catch (e) {
+      log(`\nfailed: ${e}`, "bad");
+    }
+  </script>
+</body>
+</html>

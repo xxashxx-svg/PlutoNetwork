@@ -1,0 +1,10 @@
+/target
+Cargo.lock
+**/node_modules
+**/dist
+**/pkg
+/server/_build
+/server/deps
+.env
+*.local
+.DS_Store

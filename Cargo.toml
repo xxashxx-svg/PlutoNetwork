@@ -1,0 +1,7 @@
+[workspace]
+resolver = "2"
+members = ["crates/veil-core", "crates/veil-wasm"]
+
+[profile.release]
+opt-level = 3
+lto = true
