@@ -6,7 +6,7 @@
   <title>Veil</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@1,6..72,300;1,6..72,400;1,6..72,500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -16,10 +16,10 @@
   <div id="gate">
     <div class="gate-inner">
       <h1 class="brand">Veil</h1>
-      <p class="tagline">letters, sealed. nobody in the middle can read them — not even us.</p>
+      <p class="tagline">end-to-end encrypted messaging.<br />the relay moves ciphertext — it can't read a byte. neither can we.</p>
       <form id="gate-form" autocomplete="off">
-        <input id="gate-name" type="text" placeholder="choose a name" maxlength="24" spellcheck="false" required />
-        <button type="submit">step behind the veil</button>
+        <input id="gate-name" type="text" placeholder="callsign" maxlength="24" spellcheck="false" required />
+        <button type="submit">generate keys → enter</button>
       </form>
       <p class="gate-hint" id="gate-hint">your keys are generated on this device and never leave it</p>
     </div>
@@ -33,7 +33,7 @@
         <span class="conn" id="conn-dot" title="relay link"></span>
       </header>
       <div class="me">
-        <span class="me-label">sealed as</span>
+        <span class="me-label">keyed in as</span>
         <span class="me-name" id="me-name"></span>
       </div>
       <form id="new-chat" autocomplete="off">
@@ -48,8 +48,8 @@
 
     <section id="convo" class="empty">
       <div id="convo-empty">
-        <p class="big-quiet">no letter opened</p>
-        <p class="small-quiet">start a chat from the left — everything is sealed end-to-end</p>
+        <p class="big-quiet">no channel open</p>
+        <p class="small-quiet">open a chat from the left — every frame leaves this machine encrypted</p>
       </div>
       <div id="convo-live" hidden>
         <header id="convo-head">
@@ -68,8 +68,8 @@
         </div>
         <div id="messages"></div>
         <form id="composer" autocomplete="off">
-          <input id="composer-input" type="text" placeholder="write, then seal…" spellcheck="false" />
-          <button type="submit">seal ⤳</button>
+          <input id="composer-input" type="text" placeholder="message — encrypted before it leaves" spellcheck="false" />
+          <button type="submit">encrypt →</button>
         </form>
       </div>
     </section>
