@@ -12,16 +12,24 @@ const wireLog = []; // last frames, for the encryption details panel
 const $ = (s) => document.querySelector(s);
 
 // ---------- theme ----------
-function applyTheme(t) {
-  document.documentElement.dataset.theme = t;
+let themeFade;
+function applyTheme(t, animate = false) {
+  const root = document.documentElement;
+  if (animate) {
+    root.classList.add("theming");
+    clearTimeout(themeFade);
+    themeFade = setTimeout(() => root.classList.remove("theming"), 400);
+  }
+  root.dataset.theme = t;
   localStorage.setItem("veil.theme", t);
 }
+// no animation on first paint — only when the user flips it
 applyTheme(
   localStorage.getItem("veil.theme") ||
     (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
 );
 $("#theme-toggle").addEventListener("click", () =>
-  applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark")
+  applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark", true)
 );
 
 // ---------- auth + boot ----------
