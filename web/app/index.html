@@ -6,22 +6,26 @@
   <title>Veil</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="grain" aria-hidden="true"></div>
-
-  <!-- name gate -->
+  <!-- sign in -->
   <div id="gate">
-    <div class="gate-inner">
-      <h1 class="brand">Veil</h1>
-      <p class="tagline">end-to-end encrypted messaging.<br />the relay moves ciphertext — it can't read a byte. neither can we.</p>
+    <div class="gate-card">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <rect x="4" y="10" width="16" height="11" rx="2.5" />
+          <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+        </svg>
+      </div>
+      <h1>Veil</h1>
+      <p class="tagline">Simple, private messaging.<br />Every message is end-to-end encrypted.</p>
       <form id="gate-form" autocomplete="off">
-        <input id="gate-name" type="text" placeholder="callsign" maxlength="24" spellcheck="false" required />
-        <button type="submit">generate keys → enter</button>
+        <input id="gate-name" type="text" placeholder="Your name" maxlength="24" spellcheck="false" required />
+        <button type="submit">Continue</button>
       </form>
-      <p class="gate-hint" id="gate-hint">your keys are generated on this device and never leave it</p>
+      <p class="gate-hint" id="gate-hint">Your encryption keys are created on this device and never leave it.</p>
     </div>
   </div>
 
@@ -29,53 +33,68 @@
   <main id="shell" hidden>
     <aside id="rail">
       <header class="rail-head">
-        <span class="brand small">Veil</span>
-        <span class="conn" id="conn-dot" title="relay link"></span>
+        <span class="rail-brand">Veil</span>
+        <span class="conn" id="conn-dot" title="connection status"></span>
       </header>
       <div class="me">
-        <span class="me-label">keyed in as</span>
+        <span class="me-label">Signed in as</span>
         <span class="me-name" id="me-name"></span>
       </div>
       <form id="new-chat" autocomplete="off">
-        <input id="new-chat-name" type="text" placeholder="write to…" spellcheck="false" />
-        <button type="submit" title="start an encrypted chat">+</button>
+        <input id="new-chat-name" type="text" placeholder="Start a chat — enter a name" spellcheck="false" />
+        <button type="submit" title="Start an encrypted chat">+</button>
       </form>
       <nav id="chat-list"></nav>
       <footer class="rail-foot">
-        <span class="cipher-tag">MLS · X25519 · AES-128-GCM · Ed25519</span>
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+          <rect x="4" y="10" width="16" height="11" rx="2.5" />
+          <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+        </svg>
+        <span>End-to-end encrypted · MLS</span>
       </footer>
     </aside>
 
     <section id="convo" class="empty">
       <div id="convo-empty">
-        <p class="big-quiet">no channel open</p>
-        <p class="small-quiet">open a chat from the left — every frame leaves this machine encrypted</p>
+        <p class="big-quiet">Select a chat</p>
+        <p class="small-quiet">or start a new one — all messages are end-to-end encrypted</p>
       </div>
       <div id="convo-live" hidden>
         <header id="convo-head">
-          <div>
-            <h2 id="convo-title"></h2>
-            <span id="convo-members" class="small-quiet"></span>
+          <div class="head-id">
+            <span class="avatar" id="convo-avatar"></span>
+            <div>
+              <h2 id="convo-title"></h2>
+              <span id="convo-members" class="head-sub"></span>
+            </div>
           </div>
           <div class="head-actions">
-            <button id="add-person" title="add someone to this chat">+ add</button>
-            <button id="peek-wire" title="what the relay actually sees">🔒 <span id="seal-count">0 B</span></button>
+            <button id="add-person" title="Add someone to this chat">Add people</button>
+            <button id="peek-wire" title="What the server actually sees">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+                <rect x="4" y="10" width="16" height="11" rx="2.5" />
+                <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+              </svg>
+              Encryption
+            </button>
           </div>
         </header>
         <div id="wire-peek" hidden>
-          <p class="peek-title">what the server sees (latest frames)</p>
+          <p class="peek-title">What the server sees — latest frames, all opaque ciphertext</p>
           <pre id="wire-frames"></pre>
         </div>
         <div id="messages"></div>
         <form id="composer" autocomplete="off">
-          <input id="composer-input" type="text" placeholder="message — encrypted before it leaves" spellcheck="false" />
-          <button type="submit">encrypt →</button>
+          <input id="composer-input" type="text" placeholder="Message" spellcheck="false" />
+          <button type="submit" title="Send (encrypted)">
+            <svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor">
+              <path d="M3.4 20.4 21.8 12 3.4 3.6l.01 6.53L15 12 3.41 13.87z" />
+            </svg>
+          </button>
         </form>
       </div>
     </section>
   </main>
-
-  <footer id="ticker" hidden></footer>
 
   <script type="module" src="app.js"></script>
 </body>
