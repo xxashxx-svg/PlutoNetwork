@@ -34,6 +34,11 @@ export const publishKeyPackage = (kp, reset = false) => post("/keypackages", { k
 // old/new are derived auth keys; the real password never leaves the device
 export const changePassword = (oldKey, newKey) => post("/password", { old: oldKey, new: newKey });
 
+export async function userExists(user) {
+  const r = await fetch(`${HTTP}/users/${encodeURIComponent(user)}`, { headers: authHeader() });
+  return r.ok;
+}
+
 export async function grabKeyPackage(user) {
   const r = await fetch(`${HTTP}/keypackages/${encodeURIComponent(user)}`, {
     headers: { authorization: `Bearer ${TOKEN}` },

@@ -1,7 +1,7 @@
 import { makeClient, restoreClient, toB64, fromB64, toHex, fromHex, encodeText, decodeText } from "./crypto.js?v=2";
 import {
   connect, sendFrame, publishKeyPackage, grabKeyPackage, register, login, whoami, setToken,
-  putVault, getVault, changePassword,
+  putVault, getVault, changePassword, userExists,
 } from "./net.js?v=2";
 import { deriveKeys, importVaultKey, seal, unseal } from "./keys.js?v=2";
 import { idbGet, idbPut } from "./storage.js?v=2";
@@ -285,13 +285,13 @@ $("#fab").addEventListener("click", () => {
   if (!form.hidden) $("#new-chat-name").focus();
 });
 
-$("#new-chat").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const who = $("#new-chat-name").value.trim().toLowerCase();
-  $("#new-chat-name").value = "";
-  $("#new-chat").hidden = true;
-  $("#fab").classList.remove("open");
+const chatWith = (who) =>
+  [...chats.entries()].find(([, c]) => c.members.size === 1 && c.members.has(who))?.[0];
+
+async function startChat(who) {
   if (!who || who === me) return;
+  const existing = chatWith(who);
+  if (existing) return openChat(existing);
   const kp = await grabKeyPackage(who);
   if (!kp) return alert(`"${who}" isn't registered on this server yet.`);
   const id = client.create_chat();
@@ -305,6 +305,15 @@ $("#new-chat").addEventListener("submit", async (e) => {
   markDirty();
   openChat(hex);
   renderChatList();
+}
+
+$("#new-chat").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const who = $("#new-chat-name").value.trim().toLowerCase();
+  $("#new-chat-name").value = "";
+  $("#new-chat").hidden = true;
+  $("#fab").classList.remove("open");
+  await startChat(who);
 });
 
 $("#add-person").addEventListener("click", async () => {
@@ -487,7 +496,23 @@ const previewText = (m) => {
   return pre + m.text;
 };
 
-$("#search").addEventListener("input", renderChatList);
+// the search bar also finds people: exact usernames only, so there's
+// still no way to browse or enumerate who's on the server
+let searchHit = null;
+let searchTimer;
+$("#search").addEventListener("input", () => {
+  const q = $("#search").value.trim().toLowerCase();
+  searchHit = null;
+  renderChatList();
+  clearTimeout(searchTimer);
+  if (!/^[a-z0-9_]{2,24}$/.test(q) || q === me || chatWith(q)) return;
+  searchTimer = setTimeout(async () => {
+    if ((await userExists(q).catch(() => false)) && $("#search").value.trim().toLowerCase() === q) {
+      searchHit = q;
+      renderChatList();
+    }
+  }, 250);
+});
 
 function renderChatList() {
   const nav = $("#chat-list");
@@ -513,6 +538,23 @@ function renderChatList() {
         ${chat.unread ? `<span class="badge">${chat.unread}</span>` : ""}
       </span>`;
     btn.onclick = () => openChat(hex);
+    nav.appendChild(btn);
+  }
+  if (searchHit && searchHit === q) {
+    const btn = document.createElement("button");
+    btn.className = "chat-item start-row";
+    btn.innerHTML = `
+      <span class="avatar" data-user="${esc(searchHit)}" style="background:${avatarColor(searchHit)}">${esc(initial(searchHit))}</span>
+      <span class="ci-main">
+        <span class="who">${esc(searchHit)}</span>
+        <span class="last">Start an encrypted chat</span>
+      </span>`;
+    btn.onclick = () => {
+      const who = searchHit;
+      $("#search").value = "";
+      searchHit = null;
+      startChat(who);
+    };
     nav.appendChild(btn);
   }
   hydrateAvatars(nav);

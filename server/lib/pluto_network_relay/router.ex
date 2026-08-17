@@ -88,6 +88,16 @@ defmodule PlutoNetworkRelay.Router do
     end
   end
 
+  # exact-match existence check for the search bar. deliberately not a
+  # search: you can only confirm a name you already know, never list users
+  get "/users/:name" do
+    cond do
+      authed(conn) == nil -> json(conn, 401, %{error: "sign in first"})
+      Store.get_user(name) != nil -> json(conn, 200, %{ok: true})
+      true -> json(conn, 404, %{error: "no such user"})
+    end
+  end
+
   # ---- key packages (auth required) ----
   post "/keypackages" do
     with user when not is_nil(user) <- authed(conn),

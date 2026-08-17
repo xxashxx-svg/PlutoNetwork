@@ -158,6 +158,7 @@ input { font: inherit; color: inherit; }
   padding: 8px 10px; border-radius: 10px; text-align: left;
 }
 .chat-item:hover { background: var(--hover); }
+.chat-item.start-row .last { color: var(--accent); }
 .chat-item.active { background: var(--active); color: var(--active-fg); }
 .chat-item.active .who, .chat-item.active .last, .chat-item.active .time { color: var(--active-fg); }
 .chat-item.active .last { opacity: 0.85; }

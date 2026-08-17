@@ -102,6 +102,14 @@ check("vault round-trip", vget.status === 200 && new TextDecoder().decode(await 
 const vno = await fetch(`${HTTP}/vault`, { method: "PUT", body: vaultBody });
 check("unauthed vault rejected", vno.status === 401);
 
+// exact-match user lookup for the search bar (no enumeration, no listing)
+const uYes = await fetch(`${HTTP}/users/smoke_bob`, { headers: { authorization: `Bearer ${tokA}` } });
+const uNo = await fetch(`${HTTP}/users/nobody_here_xyz`, { headers: { authorization: `Bearer ${tokA}` } });
+const uAnon = await fetch(`${HTTP}/users/smoke_bob`);
+check("user lookup finds exact name", uYes.status === 200);
+check("user lookup 404s unknown name", uNo.status === 404);
+check("unauthed user lookup rejected", uAnon.status === 401);
+
 // password change: verified against the old key; old stops working, new works
 const pcUser = `smoke_pc${Date.now() % 1000000}`;
 const pcTok = (await post("/register", { user: pcUser, pass: "first-pass" })).body.token;
