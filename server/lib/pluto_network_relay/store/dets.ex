@@ -64,12 +64,30 @@ defmodule PlutoNetworkRelay.Store.Dets do
     end
   end
 
-  def stash(user, frame), do: :dets.insert(:mailboxes, {user, frame})
+  def stash(user, frame),
+    do: :dets.insert(:mailboxes, {user, {:erlang.unique_integer([:monotonic, :positive]), frame}})
 
-  def drain(user) do
-    frames = :dets.lookup(:mailboxes, user) |> Enum.map(fn {_, f} -> f end)
-    :dets.delete(:mailboxes, user)
-    frames
+  def fetch_mail(user) do
+    :dets.lookup(:mailboxes, user)
+    |> Enum.flat_map(fn
+      {_, {id, frame}} when is_integer(id) ->
+        [{id, frame}]
+
+      {^user, frame} = legacy when is_binary(frame) ->
+        # pre-ack row: deliver once, the old drain way
+        :dets.delete_object(:mailboxes, legacy)
+        [{0, frame}]
+    end)
+    |> Enum.sort()
+    |> Enum.take(500)
+  end
+
+  def ack_mail(user, ids) do
+    for {^user, {id, _}} = obj <- :dets.lookup(:mailboxes, user), id in ids do
+      :dets.delete_object(:mailboxes, obj)
+    end
+
+    :ok
   end
 
   def put_blob(id, bytes), do: File.write!("data/blobs/#{id}", bytes)

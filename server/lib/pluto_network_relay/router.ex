@@ -4,8 +4,10 @@ defmodule PlutoNetworkRelay.Router do
   alias PlutoNetworkRelay.{Auth, Store}
 
   plug :cors
-  # in production the web client ships inside the image at ./static
-  plug Plug.Static, at: "/", from: "static"
+  # in production the web client ships inside the image at ./static.
+  # no-cache = browsers revalidate every load (etag 304s), so deploys
+  # reach every client on a normal refresh instead of running stale
+  plug Plug.Static, at: "/", from: "static", cache_control_for_etags: "no-cache"
   plug :match
   # pass: raw bodies (blobs/vault ciphertext) flow through untouched
   plug Plug.Parsers, parsers: [:json], json_decoder: Jason, pass: ["*/*"]
@@ -216,7 +218,10 @@ defmodule PlutoNetworkRelay.Router do
 
   get "/" do
     if File.exists?("static/index.html") do
-      conn |> put_resp_content_type("text/html") |> send_file(200, "static/index.html")
+      conn
+      |> put_resp_content_type("text/html")
+      |> put_resp_header("cache-control", "no-cache")
+      |> send_file(200, "static/index.html")
     else
       send_resp(conn, 200, "PlutoNetwork relay")
     end

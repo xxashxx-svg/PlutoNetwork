@@ -1,11 +1,11 @@
-import { makeClient, restoreClient, toB64, fromB64, toHex, fromHex, encodeText, decodeText } from "./crypto.js?v=6";
+import { makeClient, restoreClient, toB64, fromB64, toHex, fromHex, encodeText, decodeText } from "./crypto.js?v=7";
 import {
   connect, sendFrame, publishKeyPackage, grabKeyPackage, register, login, whoami, setToken,
   putVault, getVault, changePassword, userExists,
-} from "./net.js?v=6";
-import { deriveKeys, importVaultKey, seal, unseal } from "./keys.js?v=6";
-import { idbGet, idbPut } from "./storage.js?v=6";
-import { encryptAndUpload, mediaUrl, rememberLocalUrl } from "./media.js?v=6";
+} from "./net.js?v=7";
+import { deriveKeys, importVaultKey, seal, unseal } from "./keys.js?v=7";
+import { idbGet, idbPut } from "./storage.js?v=7";
+import { encryptAndUpload, mediaUrl, rememberLocalUrl } from "./media.js?v=7";
 
 // ---------- state ----------
 let me = null;

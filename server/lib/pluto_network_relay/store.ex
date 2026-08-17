@@ -27,9 +27,12 @@ defmodule PlutoNetworkRelay.Store do
   def clear_key_packages(user), do: backend().clear_key_packages(user)
   def pop_key_package(user), do: backend().pop_key_package(user)
 
-  # mailbox: ciphertext frames waiting for an offline user (order preserved)
+  # mailbox: every frame lands here first and is deleted only after the
+  # recipient's client confirms receipt (at-least-once delivery; MLS drops
+  # any duplicate ciphertext, so redelivery is always safe)
   def stash(user, frame), do: backend().stash(user, frame)
-  def drain(user), do: backend().drain(user)
+  def fetch_mail(user), do: backend().fetch_mail(user)
+  def ack_mail(user, ids), do: backend().ack_mail(user, ids)
 
   # encrypted media blobs + history vaults
   def put_blob(id, bytes), do: backend().put_blob(id, bytes)

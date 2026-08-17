@@ -87,7 +87,14 @@ export function connect(onFrame, onDrop) {
       ws._seen = Date.now();
       const data = JSON.parse(e.data);
       if (data.pong) return; // heartbeat answer, not a frame
-      onFrame(data);
+      try {
+        onFrame(data);
+      } finally {
+        // confirm receipt so the relay can drop it; until then it redelivers
+        if (data.mid != null && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ got: [data.mid] }));
+        }
+      }
     };
     ws.onopen = () => {
       ws._beat = setInterval(() => {

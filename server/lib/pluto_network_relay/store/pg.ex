@@ -51,6 +51,7 @@ defmodule PlutoNetworkRelay.Store.Pg do
     "CREATE TABLE IF NOT EXISTS key_packages (id bigserial PRIMARY KEY, name text NOT NULL, kp text NOT NULL)",
     "CREATE INDEX IF NOT EXISTS kp_name ON key_packages (name)",
     "CREATE TABLE IF NOT EXISTS mailboxes (id bigserial PRIMARY KEY, name text NOT NULL, frame text NOT NULL)",
+    "ALTER TABLE mailboxes ADD COLUMN IF NOT EXISTS inserted_at timestamptz NOT NULL DEFAULT now()",
     "CREATE INDEX IF NOT EXISTS mb_name ON mailboxes (name)",
     "CREATE TABLE IF NOT EXISTS blobs (id text PRIMARY KEY, data bytea NOT NULL, inserted_at timestamptz NOT NULL DEFAULT now())",
     "CREATE TABLE IF NOT EXISTS vaults (name text PRIMARY KEY, data bytea NOT NULL)"
@@ -63,6 +64,9 @@ defmodule PlutoNetworkRelay.Store.Pg do
 
     # free databases are small; BLOB_TTL_DAYS trades old media for space.
     # restarts are frequent on free hosts, so boot-time is periodic enough.
+    # unclaimed mail from clients that never ack (or never return) ages out
+    q!("DELETE FROM mailboxes WHERE inserted_at < now() - interval '7 days'")
+
     case System.get_env("BLOB_TTL_DAYS") do
       nil -> :ok
       days -> q!("DELETE FROM blobs WHERE inserted_at < now() - ($1 || ' days')::interval", [days])
@@ -126,11 +130,14 @@ defmodule PlutoNetworkRelay.Store.Pg do
     q!("SELECT pg_notify('pluto_mail', $1)", [user])
   end
 
-  def drain(user) do
-    rows = q!("SELECT id, frame FROM mailboxes WHERE name = $1 ORDER BY id", [user]).rows
-    ids = Enum.map(rows, fn [id, _] -> id end)
-    if ids != [], do: q!("DELETE FROM mailboxes WHERE id = ANY($1)", [ids])
-    Enum.map(rows, fn [_, frame] -> frame end)
+  def fetch_mail(user) do
+    q!("SELECT id, frame FROM mailboxes WHERE name = $1 ORDER BY id LIMIT 500", [user]).rows
+    |> Enum.map(fn [id, frame] -> {id, frame} end)
+  end
+
+  def ack_mail(user, ids) do
+    q!("DELETE FROM mailboxes WHERE name = $1 AND id = ANY($2)", [user, ids])
+    :ok
   end
 
   def put_blob(id, bytes), do: q!("INSERT INTO blobs (id, data) VALUES ($1, $2)", [id, bytes])
