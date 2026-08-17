@@ -43,6 +43,14 @@ defmodule PlutoNetworkRelay.Socket do
     {:push, {:text, frame}, state}
   end
 
+  # another instance stashed mail for us (Bus heard the pg_notify)
+  def handle_info(:check_mail, state) do
+    case PlutoNetworkRelay.Store.drain(state.user) do
+      [] -> {:ok, state}
+      frames -> {:push, Enum.map(frames, &{:text, &1}), state}
+    end
+  end
+
   @impl true
   def terminate(_reason, _state), do: :ok
 

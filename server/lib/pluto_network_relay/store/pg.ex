@@ -120,7 +120,11 @@ defmodule PlutoNetworkRelay.Store.Pg do
     end
   end
 
-  def stash(user, frame), do: q!("INSERT INTO mailboxes (name, frame) VALUES ($1, $2)", [user, frame])
+  def stash(user, frame) do
+    q!("INSERT INTO mailboxes (name, frame) VALUES ($1, $2)", [user, frame])
+    # wake whichever instance holds this user's socket (see Bus)
+    q!("SELECT pg_notify('pluto_mail', $1)", [user])
+  end
 
   def drain(user) do
     rows = q!("SELECT id, frame FROM mailboxes WHERE name = $1 ORDER BY id", [user]).rows

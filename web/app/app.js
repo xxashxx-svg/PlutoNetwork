@@ -563,6 +563,7 @@ function renderChatList() {
 function openChat(hex) {
   activeChat = hex;
   chats.get(hex).unread = 0;
+  document.body.classList.add("in-convo"); // phones: conversation takes the screen
   $("#convo").classList.remove("empty");
   $("#convo-empty").hidden = true;
   $("#convo-live").hidden = false;
@@ -571,6 +572,12 @@ function openChat(hex) {
   markDirty();
   $("#composer-input").focus();
 }
+
+$("#back-btn").addEventListener("click", () => {
+  document.body.classList.remove("in-convo");
+  activeChat = null;
+  renderChatList();
+});
 
 // ---------- render: conversation ----------
 function renderConvo() {

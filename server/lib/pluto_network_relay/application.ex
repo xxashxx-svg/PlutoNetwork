@@ -16,7 +16,8 @@ defmodule PlutoNetworkRelay.Application do
 
           [
             Store.Pg.child_spec(url),
-            %{id: :migrations, start: {Store.Pg, :start_migrations, [nil]}}
+            %{id: :migrations, start: {Store.Pg, :start_migrations, [nil]}},
+            %{id: PlutoNetworkRelay.Bus, start: {PlutoNetworkRelay.Bus, :start_link, [url]}}
           ]
       end
 

@@ -53,7 +53,9 @@ body {
   color: var(--text);
   background: var(--bg-chat);
   height: 100vh;
+  height: 100dvh; /* mobile browsers: track the real visible area */
   overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
 }
 
 button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
@@ -100,7 +102,8 @@ input { font: inherit; color: inherit; }
 
 /* ---------- shell ---------- */
 
-#shell { display: flex; height: 100vh; }
+#shell { display: flex; height: 100vh; height: 100dvh; }
+#back-btn { display: none; }
 
 /* ---------- sidebar ---------- */
 
@@ -462,3 +465,17 @@ input { font: inherit; color: inherit; }
 }
 #lightbox[hidden] { display: none; }
 #lightbox img { max-width: 94vw; max-height: 94vh; border-radius: 4px; }
+
+/* ---------- phones: one pane at a time (last so it wins the cascade) ---------- */
+@media (max-width: 768px) {
+  #rail { width: 100%; max-width: none; border-right: none; }
+  #convo { display: none; }
+  body.in-convo #rail { display: none; }
+  body.in-convo #convo { display: flex; }
+  body.in-convo #back-btn { display: flex; }
+  #convo-head { padding-left: 6px; }
+  .msg { max-width: 84%; }
+  #messages { padding: 10px 12px 6px; }
+  /* 16px inputs stop iOS from zooming the page on focus */
+  #composer-input, #gate-form input, #pass-form input, #new-chat input, .rail-search input { font-size: 16px; }
+}
