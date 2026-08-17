@@ -6,17 +6,33 @@ defmodule PlutoNetworkRelay.Socket do
 
   @impl true
   def init(%{user: user}) do
-    Registry.register(PlutoNetworkRelay.Conns, user, nil)
+    register(user, 5)
     queued = PlutoNetworkRelay.Store.drain(user) |> Enum.map(&{:text, &1})
     {:push, queued, %{user: user}}
+  end
+
+  # a half-open twin may be squatting the name; the fresh connection wins
+  defp register(user, tries) do
+    case Registry.register(PlutoNetworkRelay.Conns, user, nil) do
+      {:ok, _} ->
+        :ok
+
+      {:error, {:already_registered, stale}} when tries > 0 ->
+        send(stale, :replaced)
+        Process.sleep(30)
+        register(user, tries - 1)
+
+      _ ->
+        :ok
+    end
   end
 
   @impl true
   def handle_in({text, [opcode: :text]}, state) do
     case Jason.decode(text) do
-      # keepalive — any frame resets the idle timer
+      # keepalive: answer so the client can tell a live link from a dead one
       {:ok, %{"ping" => _}} ->
-        {:ok, state}
+        {:push, {:text, ~s({"pong":1})}, state}
 
       # sender knows the roster (MLS clients track membership) and
       # addresses recipients explicitly. blob = base64 ciphertext.
@@ -42,6 +58,9 @@ defmodule PlutoNetworkRelay.Socket do
   def handle_info({:deliver, frame}, state) do
     {:push, {:text, frame}, state}
   end
+
+  # a newer connection for this user took over
+  def handle_info(:replaced, state), do: {:stop, :normal, state}
 
   # another instance stashed mail for us (Bus heard the pg_notify)
   def handle_info(:check_mail, state) do

@@ -81,11 +81,23 @@ export async function getVault() {
 export function connect(onFrame, onDrop) {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(`${WS}/ws?token=${encodeURIComponent(TOKEN)}`);
-    ws.onmessage = (e) => onFrame(JSON.parse(e.data));
+    ws._seen = Date.now();
+    let beats = 0;
+    ws.onmessage = (e) => {
+      ws._seen = Date.now();
+      const data = JSON.parse(e.data);
+      if (data.pong) return; // heartbeat answer, not a frame
+      onFrame(data);
+    };
     ws.onopen = () => {
-      // keepalive so the relay's idle timer never reaps us
       ws._beat = setInterval(() => {
-        if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ ping: 1 }));
+        if (ws.readyState !== WebSocket.OPEN) return;
+        // half-open detection: the relay answers every ping, so prolonged
+        // silence means the link is dead even though it looks open
+        if (Date.now() - ws._seen > 75_000) return ws.close();
+        ws.send(JSON.stringify({ ping: 1 }));
+        // an HTTP touch every ~4 min keeps free hosts from idling us out
+        if (++beats % 10 === 0) fetch(`${HTTP}/health`).catch(() => {});
       }, 25_000);
       resolve(ws);
     };

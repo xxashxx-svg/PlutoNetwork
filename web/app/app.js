@@ -1,11 +1,11 @@
-import { makeClient, restoreClient, toB64, fromB64, toHex, fromHex, encodeText, decodeText } from "./crypto.js?v=3";
+import { makeClient, restoreClient, toB64, fromB64, toHex, fromHex, encodeText, decodeText } from "./crypto.js?v=4";
 import {
   connect, sendFrame, publishKeyPackage, grabKeyPackage, register, login, whoami, setToken,
   putVault, getVault, changePassword, userExists,
-} from "./net.js?v=3";
-import { deriveKeys, importVaultKey, seal, unseal } from "./keys.js?v=3";
-import { idbGet, idbPut } from "./storage.js?v=3";
-import { encryptAndUpload, mediaUrl, rememberLocalUrl } from "./media.js?v=3";
+} from "./net.js?v=4";
+import { deriveKeys, importVaultKey, seal, unseal } from "./keys.js?v=4";
+import { idbGet, idbPut } from "./storage.js?v=4";
+import { encryptAndUpload, mediaUrl, rememberLocalUrl } from "./media.js?v=4";
 
 // ---------- state ----------
 let me = null;
@@ -225,18 +225,34 @@ async function persist() {
 }
 
 // reconnect forever; the relay queues our mail while we're gone
+let connecting = false;
+let retries = 0;
+const retryDelay = () => Math.min(30_000, 1500 * 2 ** Math.min(retries, 4));
+
 async function linkUp() {
+  if (connecting || (ws && ws.readyState === WebSocket.OPEN)) return;
+  connecting = true;
   try {
     ws = await connect(onFrame, () => {
       $("#conn-dot").classList.remove("live");
-      setTimeout(linkUp, 1500);
+      setTimeout(linkUp, retryDelay());
     });
+    retries = 0;
     $("#conn-dot").classList.add("live");
   } catch {
+    retries++;
     $("#conn-dot").classList.remove("live");
-    setTimeout(linkUp, 1500);
+    setTimeout(linkUp, retryDelay());
+  } finally {
+    connecting = false;
   }
 }
+
+// waking the tab or regaining network is the moment to check the link
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && me) linkUp();
+});
+addEventListener("online", () => me && linkUp());
 
 // ---------- incoming ----------
 function onFrame(frame) {

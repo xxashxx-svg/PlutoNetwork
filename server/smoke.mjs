@@ -61,6 +61,11 @@ check("bad ws token rejected", rejected);
 // live delivery
 const alice = await connect(tokA);
 const bob = await connect(tokB);
+
+// heartbeat: a ping gets a pong (dead-link detection depends on this)
+alice.send(JSON.stringify({ ping: 1 }));
+await sleep(300);
+check("ping gets pong", alice.inbox.some((m) => m.pong));
 alice.send(JSON.stringify({ to: ["smoke_bob"], blob: "Y2lwaGVydGV4dA==", kind: "msg" }));
 await sleep(300);
 const live = bob.inbox.at(-1);
