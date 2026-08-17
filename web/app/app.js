@@ -1,11 +1,11 @@
-import { makeClient, restoreClient, toB64, fromB64, toHex, fromHex, encodeText, decodeText } from "./crypto.js?v=5";
+import { makeClient, restoreClient, toB64, fromB64, toHex, fromHex, encodeText, decodeText } from "./crypto.js?v=6";
 import {
   connect, sendFrame, publishKeyPackage, grabKeyPackage, register, login, whoami, setToken,
   putVault, getVault, changePassword, userExists,
-} from "./net.js?v=5";
-import { deriveKeys, importVaultKey, seal, unseal } from "./keys.js?v=5";
-import { idbGet, idbPut } from "./storage.js?v=5";
-import { encryptAndUpload, mediaUrl, rememberLocalUrl } from "./media.js?v=5";
+} from "./net.js?v=6";
+import { deriveKeys, importVaultKey, seal, unseal } from "./keys.js?v=6";
+import { idbGet, idbPut } from "./storage.js?v=6";
+import { encryptAndUpload, mediaUrl, rememberLocalUrl } from "./media.js?v=6";
 
 // ---------- state ----------
 let me = null;
@@ -769,9 +769,10 @@ function msgEl(m, next, group) {
   return el;
 }
 
+// Telegram semantics: one check = sent/delivered, double check = read
 function ticksHtml(status) {
   if (!status) return "";
-  const second = status === "sent" ? "" : `<path d="M7.6 9.6 8.4 10.4 15.4 3.4"/>`;
+  const second = status === "read" ? `<path d="M7.6 9.6 8.4 10.4 15.4 3.4"/>` : "";
   return `<span class="ticks${status === "read" ? " read" : ""}"><svg viewBox="0 0 17 12" width="15" height="11" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1.6 6.6 5 10 12 3"/>${second}</svg></span>`;
 }
 
