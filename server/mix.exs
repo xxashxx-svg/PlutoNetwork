@@ -23,7 +23,8 @@ defmodule PlutoNetworkRelay.MixProject do
       {:bandit, "~> 1.0"},
       {:websock_adapter, "~> 0.5"},
       {:plug, "~> 1.15"},
-      {:jason, "~> 1.4"}
+      {:jason, "~> 1.4"},
+      {:postgrex, "~> 0.19"}
     ]
   end
 end

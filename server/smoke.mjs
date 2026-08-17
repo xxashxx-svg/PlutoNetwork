@@ -1,8 +1,8 @@
 // quick smoke test for the relay — run with: node smoke.mjs
 // needs node 22+ (native WebSocket). covers accounts + ws routing.
 
-const HTTP = "http://localhost:4000";
-const RELAY = "ws://localhost:4000/ws";
+const HTTP = process.env.RELAY || "http://localhost:4000";
+const RELAY = HTTP.replace("http", "ws") + "/ws";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const results = [];

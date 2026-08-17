@@ -117,29 +117,34 @@ defmodule PlutoNetworkRelay.Router do
   # ---- encrypted media blobs (auth required, content is client-side ciphertext) ----
   # ids are 128-bit random so they're unguessable; the payload is opaque to us anyway
   @blob_id ~r/^[A-Za-z0-9_-]{16,}$/
-  @max_blob 64 * 1024 * 1024
 
   post "/blobs" do
     with user when not is_nil(user) <- authed(conn),
          {:ok, body, conn} when byte_size(body) > 0 <- read_all(conn) do
       _ = user
       id = Base.url_encode64(:crypto.strong_rand_bytes(16), padding: false)
-      File.mkdir_p!("data/blobs")
-      File.write!("data/blobs/#{id}", body)
+      Store.put_blob(id, body)
       json(conn, 201, %{id: id})
     else
       nil -> json(conn, 401, %{error: "sign in first"})
-      {:error, :too_big} -> json(conn, 413, %{error: "blob too big (64MB max)"})
+      {:error, :too_big} -> json(conn, 413, %{error: "blob too big (#{max_blob_mb()}MB max)"})
       _ -> json(conn, 400, %{error: "empty body"})
     end
   end
 
   get "/blobs/:id" do
     cond do
-      authed(conn) == nil -> json(conn, 401, %{error: "sign in first"})
-      not Regex.match?(@blob_id, id) -> json(conn, 400, %{error: "bad id"})
-      not File.exists?("data/blobs/#{id}") -> json(conn, 404, %{error: "no such blob"})
-      true -> conn |> put_resp_content_type("application/octet-stream") |> send_file(200, "data/blobs/#{id}")
+      authed(conn) == nil ->
+        json(conn, 401, %{error: "sign in first"})
+
+      not Regex.match?(@blob_id, id) ->
+        json(conn, 400, %{error: "bad id"})
+
+      true ->
+        case Store.get_blob(id) do
+          nil -> json(conn, 404, %{error: "no such blob"})
+          bytes -> conn |> put_resp_content_type("application/octet-stream") |> send_resp(200, bytes)
+        end
     end
   end
 
@@ -147,8 +152,7 @@ defmodule PlutoNetworkRelay.Router do
   put "/vault" do
     with user when not is_nil(user) <- authed(conn),
          {:ok, body, conn} when byte_size(body) > 0 <- read_all(conn) do
-      File.mkdir_p!("data/vaults")
-      File.write!("data/vaults/#{user}.bin", body)
+      Store.put_vault(user, body)
       json(conn, 200, %{ok: true})
     else
       nil -> json(conn, 401, %{error: "sign in first"})
@@ -163,22 +167,22 @@ defmodule PlutoNetworkRelay.Router do
         json(conn, 401, %{error: "sign in first"})
 
       user ->
-        path = "data/vaults/#{user}.bin"
-
-        if File.exists?(path) do
-          conn |> put_resp_content_type("application/octet-stream") |> send_file(200, path)
-        else
-          json(conn, 404, %{error: "no vault yet"})
+        case Store.get_vault(user) do
+          nil -> json(conn, 404, %{error: "no vault yet"})
+          bytes -> conn |> put_resp_content_type("application/octet-stream") |> send_resp(200, bytes)
         end
     end
   end
+
+  # free-tier databases are small; MAX_BLOB_MB caps per-file size (default 64)
+  defp max_blob_mb, do: String.to_integer(System.get_env("MAX_BLOB_MB") || "64")
 
   defp read_all(conn, acc \\ [], size \\ 0) do
     case Plug.Conn.read_body(conn, length: 8_000_000) do
       {:ok, data, conn} -> {:ok, IO.iodata_to_binary([acc, data]), conn}
       {:more, data, conn} ->
         size = size + byte_size(data)
-        if size > @max_blob, do: {:error, :too_big}, else: read_all(conn, [acc, data], size)
+        if size > max_blob_mb() * 1024 * 1024, do: {:error, :too_big}, else: read_all(conn, [acc, data], size)
       {:error, _} = err -> err
     end
   end

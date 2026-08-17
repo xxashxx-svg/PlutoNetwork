@@ -92,7 +92,20 @@ fly deploy
 # any VPS: docker compose up -d, then put Caddy/nginx with TLS in front of :4000
 ```
 
-Durable state lives in `/app/data` (accounts, queued ciphertext, blobs, vaults). Mount a volume there or messages queued for offline users vanish on redeploy. Scale-wise this is a single-node design (DETS + local disk): perfect for a friend group, not for a million users.
+### Storage: two modes
+
+- **No `DATABASE_URL`** (default): DETS + local disk under `/app/data`. Simple self-hosting; mount a volume there or data vanishes on redeploy.
+- **`DATABASE_URL` set**: everything lives in Postgres and **the container is fully stateless**. The host can wipe, sleep, or restart it and nothing is lost, not even login sessions. TLS to the database is verified against system CAs.
+
+### Running on free hosting (the stateless recipe)
+
+Free container hosts (Koyeb, Render, ...) have no persistent disks, but free managed Postgres does persist. Combine them and the free tier stops mattering:
+
+1. **Free Postgres**: create a database on [Neon](https://neon.tech), [Supabase](https://supabase.com), or Koyeb's own, and copy its connection string.
+2. **Free container host**: deploy this repo (both detect the Dockerfile) and set the `DATABASE_URL` env var to that string. Set `MAX_BLOB_MB=10` and `BLOB_TTL_DAYS=30` so media doesn't outgrow a small free database (old media expires; chat text lives in vaults and is never dropped).
+3. **Stay awake**: free instances sleep when idle. The included GitHub Action (`.github/workflows/keepalive.yml`) pings `/health` every 10 minutes; set the `APP_URL` repository variable to enable it.
+
+Result: $0/month, HTTPS included, and accounts, messages, and history survive every restart the host throws at you.
 
 ## Roadmap
 
