@@ -1,6 +1,6 @@
 # PlutoNetwork
 
-Open-source end-to-end encrypted messenger ("PN" for short). Telegram-style chat with text, images, videos, voice notes and files — all fully encrypted, on top of one shared Rust crypto core.
+Open-source end-to-end encrypted messenger ("PN" for short). Clean, familiar chat with text, images, videos, voice notes and files, all fully encrypted on top of one shared Rust crypto core.
 
 > ⚠️ **Status: working prototype.** The crypto engine works and the whole flow is covered by automated end-to-end tests, but nothing here has been audited. Do not trust it with real secrets yet.
 
@@ -14,7 +14,7 @@ The whole design philosophy: write the hard part (crypto + protocol) **once** in
 |-------|--------|-----|
 | E2EE protocol | **MLS (RFC 9420)** via [OpenMLS](https://github.com/openmls/openmls) | IETF standard, forward secrecy + post-compromise security, group keys scale log(N) |
 | Crypto core | **Rust** (`crates/plutonetwork-core`) | Same architecture Signal (libsignal) and Element (matrix-rust-sdk) ship in production |
-| Web | Rust core compiled to **WASM** + vanilla JS Telegram-style UI | Crypto never reimplemented in JS |
+| Web | Rust core compiled to **WASM** + vanilla JS chat UI | Crypto never reimplemented in JS |
 | Relay server | **Elixir** (Bandit + Plug) | BEAM is the proven runtime for massive real-time messaging |
 | Attachments | Client-side AES-256-GCM, ciphertext blob store | The Signal attachment model — the relay never sees media plaintext |
 | Profile photos | Canvas re-encode (strips EXIF/GPS/all metadata), then encrypted like attachments | Key travels only inside MLS messages, so only your contacts can see your photo |
@@ -45,7 +45,7 @@ crates/
   plutonetwork-core/   # MLS engine — identity, groups, encrypt/decrypt, state export
   plutonetwork-wasm/   # wasm-bindgen bridge for the web client
 server/                # Elixir relay — accounts, key packages, mailboxes, blobs, vaults
-web/app/               # Telegram-style web client (no bundler, ES modules)
+web/app/               # web client (no bundler, ES modules)
 docs/                  # architecture notes + screenshots
 ```
 
@@ -99,7 +99,7 @@ Durable state lives in `/app/data` (accounts, queued ciphertext, blobs, vaults).
 - [x] Rust core wrapping OpenMLS + WASM bridge
 - [x] Elixir relay — key package directory, ciphertext queue, WebSocket fan-out
 - [x] Encrypted local persistence + encrypted server history backup
-- [x] Telegram-style UI with images, videos, voice notes, files
+- [x] Polished chat UI with images, videos, voice notes, files
 - [ ] Safety numbers / key verification UI
 - [ ] Member removal + multi-device
 - [ ] iOS/Android via UniFFI bindings
