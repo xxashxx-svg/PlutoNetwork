@@ -1,11 +1,11 @@
-import { makeClient, restoreClient, toB64, fromB64, toHex, fromHex, encodeText, decodeText } from "./crypto.js?v=4";
+import { makeClient, restoreClient, toB64, fromB64, toHex, fromHex, encodeText, decodeText } from "./crypto.js?v=5";
 import {
   connect, sendFrame, publishKeyPackage, grabKeyPackage, register, login, whoami, setToken,
   putVault, getVault, changePassword, userExists,
-} from "./net.js?v=4";
-import { deriveKeys, importVaultKey, seal, unseal } from "./keys.js?v=4";
-import { idbGet, idbPut } from "./storage.js?v=4";
-import { encryptAndUpload, mediaUrl, rememberLocalUrl } from "./media.js?v=4";
+} from "./net.js?v=5";
+import { deriveKeys, importVaultKey, seal, unseal } from "./keys.js?v=5";
+import { idbGet, idbPut } from "./storage.js?v=5";
+import { encryptAndUpload, mediaUrl, rememberLocalUrl } from "./media.js?v=5";
 
 // ---------- state ----------
 let me = null;
@@ -250,7 +250,13 @@ async function linkUp() {
 
 // waking the tab or regaining network is the moment to check the link
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && me) linkUp();
+  if (!document.hidden && me) {
+    linkUp();
+    if (activeChat) {
+      ackReadPending(chats.get(activeChat));
+      renderConvo();
+    }
+  }
 });
 addEventListener("online", () => me && linkUp());
 
@@ -288,6 +294,22 @@ function onFrame(frame) {
   if (activeChat) renderConvo();
 }
 
+const msgId = () => toHex(crypto.getRandomValues(new Uint8Array(8)));
+
+// acks are E2EE payloads too, so even the relay can't see who read what
+function sendAcks(chat, ids, kind) {
+  if (!ids.length || chat.dead) return;
+  try {
+    sendPayload(chat, { t: "ack", ack: kind, ids });
+  } catch {}
+}
+
+function ackReadPending(chat) {
+  const pending = chat.msgs.filter((m) => !m.sys && !m.mine && m.id && !m.readAcked);
+  pending.forEach((m) => (m.readAcked = true));
+  sendAcks(chat, pending.map((m) => m.id), "read");
+}
+
 // app-level payloads ride encrypted inside MLS messages
 function handlePayload(hex, sender, raw) {
   let p;
@@ -303,10 +325,24 @@ function handlePayload(hex, sender, raw) {
     else profiles.delete(sender);
     return;
   }
+  if (p.t === "ack") {
+    for (const m of chat.msgs) {
+      if (m.mine && m.id && p.ids?.includes(m.id)) {
+        m.status = p.ack === "read" || m.status === "read" ? "read" : "delivered";
+      }
+    }
+    return;
+  }
   const msg = { who: sender, ts: Date.now(), mine: false, t: p.t || "text" };
   if (msg.t === "text") msg.text = p.body;
   else msg.media = p.media;
+  if (p.id) msg.id = p.id;
   chat.msgs.push(msg);
+  const seen = activeChat === hex && !document.hidden;
+  if (msg.id) {
+    msg.readAcked = seen;
+    sendAcks(chat, [msg.id], seen ? "read" : "delivered");
+  }
   if (activeChat !== hex) chat.unread++;
   flashSeal();
 }
@@ -403,14 +439,15 @@ $("#composer").addEventListener("submit", (e) => {
   const text = $("#composer-input").value.trim();
   if (!text || !activeChat) return;
   const chat = chats.get(activeChat);
+  const id = msgId();
   try {
-    sendPayload(chat, { t: "text", body: text });
+    sendPayload(chat, { t: "text", body: text, id });
   } catch {
     return; // stay in the input so nothing is lost
   }
   $("#composer-input").value = "";
   syncSendButton();
-  chat.msgs.push({ who: me, text, ts: Date.now(), mine: true, t: "text" });
+  chat.msgs.push({ who: me, text, ts: Date.now(), mine: true, t: "text", id, status: "sent" });
   flashSeal();
   renderChatList();
   renderConvo();
@@ -449,8 +486,9 @@ async function sendFile(file) {
     } catch {}
   }
   rememberLocalUrl(media.id, file);
-  sendPayload(chat, { t: kind, media });
-  chat.msgs.push({ who: me, mine: true, ts: Date.now(), t: kind, media });
+  const id = msgId();
+  sendPayload(chat, { t: kind, media, id });
+  chat.msgs.push({ who: me, mine: true, ts: Date.now(), t: kind, media, id, status: "sent" });
   flashSeal();
   renderChatList();
   renderConvo();
@@ -482,8 +520,9 @@ $("#mic-btn").addEventListener("click", async () => {
       const enc = await encryptAndUpload(new Uint8Array(await blob.arrayBuffer()));
       const media = { ...enc, mime: blob.type, size: blob.size, dur };
       rememberLocalUrl(media.id, blob);
-      sendPayload(chat, { t: "voice", media });
-      chat.msgs.push({ who: me, mine: true, ts: Date.now(), t: "voice", media });
+      const id = msgId();
+      sendPayload(chat, { t: "voice", media, id });
+      chat.msgs.push({ who: me, mine: true, ts: Date.now(), t: "voice", media, id, status: "sent" });
       flashSeal();
       renderChatList();
       renderConvo();
@@ -608,7 +647,9 @@ function renderChatList() {
 
 function openChat(hex) {
   activeChat = hex;
-  chats.get(hex).unread = 0;
+  const c = chats.get(hex);
+  c.unread = 0;
+  ackReadPending(c);
   document.body.classList.add("in-convo"); // phones: conversation takes the screen
   $("#convo").classList.remove("empty");
   $("#convo-empty").hidden = true;
@@ -678,7 +719,7 @@ function msgEl(m, next, group) {
     !m.mine && group
       ? `<span class="sender" style="color:hsl(${[...m.who].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 0)}, 55%, 45%)">${esc(m.who)}</span>`
       : "";
-  const stamp = `<span class="t">${time(m.ts)}</span>`;
+  const stamp = `<span class="t">${time(m.ts)}${m.mine ? ticksHtml(m.status) : ""}</span>`;
 
   if (m.t === "image" || m.t === "video") {
     el.innerHTML = `<div class="bubble media">${name}<div class="media-pending">Decrypting…</div>${stamp}</div>`;
@@ -726,6 +767,12 @@ function msgEl(m, next, group) {
     el.innerHTML = `${name ? `<div class="bubble">${name}${esc(m.text)}${stamp}</div>` : `<div class="bubble">${esc(m.text)}${stamp}</div>`}`;
   }
   return el;
+}
+
+function ticksHtml(status) {
+  if (!status) return "";
+  const second = status === "sent" ? "" : `<path d="M7.6 9.6 8.4 10.4 15.4 3.4"/>`;
+  return `<span class="ticks${status === "read" ? " read" : ""}"><svg viewBox="0 0 17 12" width="15" height="11" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1.6 6.6 5 10 12 3"/>${second}</svg></span>`;
 }
 
 const playSvg = (paused = false) =>

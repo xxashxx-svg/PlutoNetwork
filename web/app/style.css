@@ -310,6 +310,10 @@ input { font: inherit; color: inherit; }
 }
 .msg.out .bubble .t { color: var(--bubble-out-accent); }
 
+.ticks { display: inline-block; margin-left: 3px; vertical-align: -1px; }
+.ticks.read { color: var(--accent); }
+.bubble.media .t .ticks.read { color: #7ec8ff; }
+
 /* media bubbles */
 .bubble.media { padding: 3px; overflow: hidden; }
 .bubble.media img, .bubble.media video {
