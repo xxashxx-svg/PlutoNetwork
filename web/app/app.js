@@ -56,10 +56,37 @@ async function enter(name, token, vaultKeyRaw) {
   await boot();
 }
 
+const readVault = async (sealed, which) => {
+  if (!sealed) return null;
+  try {
+    return JSON.parse(decodeText(await unseal(vaultKey, new Uint8Array(sealed))));
+  } catch (err) {
+    console.warn(`${which} vault unreadable:`, err);
+    return null;
+  }
+};
+
+function hydrateVault(vault, liveIds, { fillOnly = false } = {}) {
+  for (const [u, d] of Object.entries(vault?.profiles ?? {})) {
+    if (!fillOnly || !profiles.has(u)) profiles.set(u, d);
+  }
+  for (const c of vault?.chats ?? []) {
+    if (fillOnly && chats.has(c.hex)) continue; // never clobber live state
+    chats.set(c.hex, {
+      id: fromHex(c.hex),
+      title: c.title,
+      members: new Set(c.members),
+      msgs: c.msgs ?? [],
+      unread: c.unread ?? 0,
+      dead: !liveIds.has(c.hex),
+    });
+  }
+}
+
 async function boot() {
   hint("Unlocking your encryption keys…");
 
-  // resume the MLS engine from the sealed local snapshot, if we have one
+  // everything local first: MLS snapshot + vault copy unlock in milliseconds
   let liveIds = new Set();
   const sealedState = await idbGet(`mls:${me}`);
   if (sealedState) {
@@ -74,42 +101,35 @@ async function boot() {
   const freshIdentity = !client;
   if (!client) client = await makeClient(me);
 
-  // history vault: local copy vs server backup, higher rev wins
-  const readVault = async (sealed, which) => {
-    if (!sealed) return null;
-    try {
-      return JSON.parse(decodeText(await unseal(vaultKey, new Uint8Array(sealed))));
-    } catch (err) {
-      console.warn(`${which} vault unreadable:`, err);
-      return null;
-    }
-  };
   const local = await readVault(await idbGet(`vault:${me}`), "local");
-  const remote = await readVault(await getVault().catch(() => null), "server");
-  const vault = (remote?.rev ?? -1) > (local?.rev ?? -1) ? remote : local;
-  vaultRev = vault?.rev ?? 0;
-  for (const [u, d] of Object.entries(vault?.profiles ?? {})) profiles.set(u, d);
-  for (const c of vault?.chats ?? []) {
-    chats.set(c.hex, {
-      id: fromHex(c.hex),
-      title: c.title,
-      members: new Set(c.members),
-      msgs: c.msgs ?? [],
-      unread: c.unread ?? 0,
-      dead: !liveIds.has(c.hex),
-    });
-  }
+  vaultRev = local?.rev ?? 0;
+  hydrateVault(local, liveIds);
 
-  // publish a stack of key packages so several people can invite us,
-  // then persist right away since their private halves live in the MLS state.
-  // a fresh identity clears the server's stale packages from a lost device
-  for (let i = 0; i < 5; i++) await publishKeyPackage(toB64(client.key_package()), i === 0 && freshIdentity);
-  await persist();
-
-  await linkUp();
+  // show the app now; the network catches up behind it
   $("#gate").classList.add("lifted");
+  $("#gate").classList.remove("resuming");
   $("#shell").hidden = false;
   renderChatList();
+
+  linkUp(); // fire and forget, the reconnect loop owns failures
+
+  (async () => {
+    // the server backup is newer only if another device wrote; fill the gaps
+    const remote = await readVault(await getVault().catch(() => null), "server");
+    if ((remote?.rev ?? -1) > vaultRev) {
+      vaultRev = remote.rev;
+      hydrateVault(remote, liveIds, { fillOnly: true });
+      renderChatList();
+      if (activeChat) renderConvo();
+    }
+    // publish a stack of key packages so several people can invite us, then
+    // persist since their private halves live in the MLS state. a fresh
+    // identity clears the server's stale packages from a lost device
+    await Promise.all(
+      Array.from({ length: 5 }, (_, i) => publishKeyPackage(toB64(client.key_package()), i === 0 && freshIdentity))
+    );
+    await persist();
+  })().catch((err) => console.warn("background boot failed:", err));
 }
 
 $("#gate-form").addEventListener("submit", async (e) => {
@@ -148,21 +168,30 @@ $("#signout").addEventListener("click", () => {
   location.reload();
 });
 
-// resume a saved session if the token is still good and we have the vault key
+// resume a saved session if the token is still good and we have the vault key.
+// the "resuming" class goes on synchronously so the sign-in form never flashes
 (async () => {
+  let saved = null;
   try {
-    const saved = JSON.parse(localStorage.getItem("pluto.session") || "null");
-    if (!saved?.token) return;
+    saved = JSON.parse(localStorage.getItem("pluto.session") || "null");
+  } catch {}
+  if (!saved?.token) return;
+  $("#gate").classList.add("resuming");
+  hint("Unlocking your encryption keys…");
+  try {
     const vk = await idbGet(`vk:${saved.name}`);
     if (vk && (await whoami(saved.token)) === saved.name) {
       setToken(saved.token);
       vaultKey = await importVaultKey(vk);
       me = saved.name;
       await boot();
+      return;
     }
   } catch {
     /* token expired or relay restarted, sign in normally */
   }
+  $("#gate").classList.remove("resuming");
+  hint("Session expired. Sign in to unlock your encrypted chats.");
 })();
 
 // ---------- persistence (sealed with the vault key) ----------

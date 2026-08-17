@@ -73,7 +73,7 @@ input { font: inherit; color: inherit; }
   background: var(--bg);
   transition: opacity 0.35s, visibility 0.35s;
 }
-#gate.lifted { opacity: 0; visibility: hidden; }
+#gate.lifted { opacity: 0; visibility: hidden; pointer-events: none; }
 
 .gate-card { width: 320px; text-align: center; }
 .logo {
@@ -99,6 +99,12 @@ input { font: inherit; color: inherit; }
 #gate-form button.secondary { background: none; color: var(--accent); }
 .gate-hint { margin-top: 18px; font-size: 12.5px; color: var(--text-2); line-height: 1.45; }
 .gate-hint.err { color: var(--danger); }
+
+/* resuming a saved session: no sign-in form, just the mark and a heartbeat */
+#gate.resuming #gate-form, #gate.resuming .tagline { display: none; }
+#gate.resuming .logo { animation: gate-pulse 1.3s ease-in-out infinite; }
+@keyframes gate-pulse { 50% { transform: scale(1.07); opacity: 0.85; } }
+@media (prefers-reduced-motion: reduce) { #gate.resuming .logo { animation: none; } }
 
 /* ---------- shell ---------- */
 
