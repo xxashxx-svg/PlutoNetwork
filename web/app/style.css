@@ -100,11 +100,14 @@ input { font: inherit; color: inherit; }
 .gate-hint { margin-top: 18px; font-size: 12.5px; color: var(--text-2); line-height: 1.45; }
 .gate-hint.err { color: var(--danger); }
 
-/* resuming a saved session: no sign-in form, just the mark and a heartbeat */
+/* resuming a saved session: no sign-in form, just the mark and a heartbeat.
+   html.has-session comes from the pre-paint script in index.html */
 #gate.resuming #gate-form, #gate.resuming .tagline { display: none; }
-#gate.resuming .logo { animation: gate-pulse 1.3s ease-in-out infinite; }
+#gate.resuming .logo, html.has-session .logo { animation: gate-pulse 1.3s ease-in-out infinite; }
 @keyframes gate-pulse { 50% { transform: scale(1.07); opacity: 0.85; } }
-@media (prefers-reduced-motion: reduce) { #gate.resuming .logo { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+  #gate.resuming .logo, html.has-session .logo { animation: none; }
+}
 
 /* ---------- shell ---------- */
 

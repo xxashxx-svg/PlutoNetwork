@@ -2,8 +2,8 @@
 // one-off AES-256-GCM key, ciphertext goes to the relay's blob store, and
 // only the tiny {id, key, iv} descriptor rides inside the MLS message.
 
-import { uploadBlob, fetchBlob } from "./net.js?v=2";
-import { toB64, fromB64 } from "./crypto.js?v=2";
+import { uploadBlob, fetchBlob } from "./net.js?v=3";
+import { toB64, fromB64 } from "./crypto.js?v=3";
 
 export async function encryptAndUpload(bytes) {
   const key = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt"]);

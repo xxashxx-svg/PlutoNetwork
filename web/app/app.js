@@ -1,11 +1,11 @@
-import { makeClient, restoreClient, toB64, fromB64, toHex, fromHex, encodeText, decodeText } from "./crypto.js?v=2";
+import { makeClient, restoreClient, toB64, fromB64, toHex, fromHex, encodeText, decodeText } from "./crypto.js?v=3";
 import {
   connect, sendFrame, publishKeyPackage, grabKeyPackage, register, login, whoami, setToken,
   putVault, getVault, changePassword, userExists,
-} from "./net.js?v=2";
-import { deriveKeys, importVaultKey, seal, unseal } from "./keys.js?v=2";
-import { idbGet, idbPut } from "./storage.js?v=2";
-import { encryptAndUpload, mediaUrl, rememberLocalUrl } from "./media.js?v=2";
+} from "./net.js?v=3";
+import { deriveKeys, importVaultKey, seal, unseal } from "./keys.js?v=3";
+import { idbGet, idbPut } from "./storage.js?v=3";
+import { encryptAndUpload, mediaUrl, rememberLocalUrl } from "./media.js?v=3";
 
 // ---------- state ----------
 let me = null;
@@ -191,6 +191,7 @@ $("#signout").addEventListener("click", () => {
     /* token expired or relay restarted, sign in normally */
   }
   $("#gate").classList.remove("resuming");
+  document.documentElement.classList.remove("has-session"); // bring the form back
   hint("Session expired. Sign in to unlock your encrypted chats.");
 })();
 
