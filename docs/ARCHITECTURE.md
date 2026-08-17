@@ -1,4 +1,4 @@
-# Veil Architecture
+# PlutoNetwork Architecture
 
 ## Trust model
 
@@ -37,7 +37,7 @@ Signal's ecosystem is more turnkey there, but the relay is the easy part.
 └──────┬──────┘  └──────┬──────┘  └──────┬───────┘
        │ wasm-bindgen   │ UniFFI         │ UniFFI
 ┌──────┴────────────────┴────────────────┴───────┐
-│                veil-core (Rust)                │   ALL crypto + protocol
+│                plutonetwork-core (Rust)                │   ALL crypto + protocol
 │       identity · groups · seal/open · MLS      │   state lives here
 └──────────────────────┬─────────────────────────┘
                        │ ciphertext only

@@ -1,0 +1,8 @@
+.git
+target
+server/_build
+server/deps
+server/data
+web/app/pkg
+**/node_modules
+docs

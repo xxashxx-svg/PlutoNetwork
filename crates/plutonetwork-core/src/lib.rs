@@ -1,4 +1,4 @@
-//! veil-core — the E2EE engine. Wraps OpenMLS so the rest of the app
+//! plutonetwork-core — the E2EE engine. Wraps OpenMLS so the rest of the app
 //! never touches raw crypto. Everything crossing the network is bytes
 //! that the server can't read.
 
@@ -13,13 +13,15 @@ pub const CIPHERSUITE: Ciphersuite =
     Ciphersuite::MLS_128_DHKEMX25519_AES128GCM_SHA256_Ed25519;
 
 #[derive(Debug, thiserror::Error)]
-pub enum VeilError {
+pub enum PlutoNetworkError {
     #[error("crypto: {0}")]
     Crypto(String),
     #[error("bad bytes on the wire: {0}")]
     Wire(String),
     #[error("no chat with that id")]
     UnknownChat,
+    #[error("bad state snapshot: {0}")]
+    State(String),
     #[error("{0}")]
     Mls(String),
 }
@@ -27,12 +29,12 @@ pub enum VeilError {
 // so we don't write map_err soup everywhere
 macro_rules! mls {
     ($e:expr) => {
-        $e.map_err(|err| VeilError::Mls(err.to_string()))
+        $e.map_err(|err| PlutoNetworkError::Mls(err.to_string()))
     };
 }
 macro_rules! wire {
     ($e:expr) => {
-        $e.map_err(|err| VeilError::Wire(err.to_string()))
+        $e.map_err(|err| PlutoNetworkError::Wire(err.to_string()))
     };
 }
 
@@ -52,11 +54,11 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(name: &str) -> Result<Self, VeilError> {
+    pub fn new(name: &str) -> Result<Self, PlutoNetworkError> {
         let provider = OpenMlsRustCrypto::default();
         let credential = BasicCredential::new(name.as_bytes().to_vec());
         let signer = SignatureKeyPair::new(CIPHERSUITE.signature_algorithm())
-            .map_err(|e| VeilError::Crypto(e.to_string()))?;
+            .map_err(|e| PlutoNetworkError::Crypto(e.to_string()))?;
         mls!(signer.store(provider.storage()))?;
         Ok(Self {
             provider,
@@ -70,7 +72,7 @@ impl Client {
     }
 
     /// fresh key package to publish on the server so people can invite us
-    pub fn key_package(&self) -> Result<Vec<u8>, VeilError> {
+    pub fn key_package(&self) -> Result<Vec<u8>, PlutoNetworkError> {
         let bundle = mls!(KeyPackage::builder().build(
             CIPHERSUITE,
             &self.provider,
@@ -80,7 +82,7 @@ impl Client {
         wire!(bundle.key_package().tls_serialize_detached())
     }
 
-    pub fn create_chat(&mut self) -> Result<Vec<u8>, VeilError> {
+    pub fn create_chat(&mut self) -> Result<Vec<u8>, PlutoNetworkError> {
         let config = MlsGroupCreateConfig::builder()
             .ciphersuite(CIPHERSUITE)
             .use_ratchet_tree_extension(true)
@@ -102,10 +104,10 @@ impl Client {
         &mut self,
         chat_id: &[u8],
         key_package_bytes: &[u8],
-    ) -> Result<(Vec<u8>, Vec<u8>), VeilError> {
+    ) -> Result<(Vec<u8>, Vec<u8>), PlutoNetworkError> {
         let kp_in = wire!(KeyPackageIn::tls_deserialize_exact(key_package_bytes))?;
         let kp = mls!(kp_in.validate(self.provider.crypto(), ProtocolVersion::Mls10))?;
-        let chat = self.chats.get_mut(chat_id).ok_or(VeilError::UnknownChat)?;
+        let chat = self.chats.get_mut(chat_id).ok_or(PlutoNetworkError::UnknownChat)?;
         let (commit, welcome, _info) =
             mls!(chat.add_members(&self.provider, &self.signer, &[kp]))?;
         mls!(chat.merge_pending_commit(&self.provider))?;
@@ -115,10 +117,10 @@ impl Client {
         ))
     }
 
-    pub fn join(&mut self, welcome_bytes: &[u8]) -> Result<Vec<u8>, VeilError> {
+    pub fn join(&mut self, welcome_bytes: &[u8]) -> Result<Vec<u8>, PlutoNetworkError> {
         let msg = wire!(MlsMessageIn::tls_deserialize_exact(welcome_bytes))?;
         let MlsMessageBodyIn::Welcome(welcome) = msg.extract() else {
-            return Err(VeilError::Wire("expected a welcome".into()));
+            return Err(PlutoNetworkError::Wire("expected a welcome".into()));
         };
         let staged = mls!(StagedWelcome::new_from_welcome(
             &self.provider,
@@ -132,22 +134,22 @@ impl Client {
         Ok(id)
     }
 
-    pub fn send(&mut self, chat_id: &[u8], plaintext: &[u8]) -> Result<Vec<u8>, VeilError> {
-        let chat = self.chats.get_mut(chat_id).ok_or(VeilError::UnknownChat)?;
+    pub fn send(&mut self, chat_id: &[u8], plaintext: &[u8]) -> Result<Vec<u8>, PlutoNetworkError> {
+        let chat = self.chats.get_mut(chat_id).ok_or(PlutoNetworkError::UnknownChat)?;
         let msg = mls!(chat.create_message(&self.provider, &self.signer, plaintext))?;
         wire!(msg.tls_serialize_detached())
     }
 
     /// feed any incoming wire message (welcomes go to `join` instead).
     /// plaintext is None for protocol messages we handled internally
-    pub fn recv(&mut self, wire_bytes: &[u8]) -> Result<Incoming, VeilError> {
+    pub fn recv(&mut self, wire_bytes: &[u8]) -> Result<Incoming, PlutoNetworkError> {
         let msg = wire!(MlsMessageIn::tls_deserialize_exact(wire_bytes))?;
         let protocol_msg: ProtocolMessage = mls!(msg.try_into_protocol_message())?;
         let chat_id = protocol_msg.group_id().as_slice().to_vec();
         let chat = self
             .chats
             .get_mut(chat_id.as_slice())
-            .ok_or(VeilError::UnknownChat)?;
+            .ok_or(PlutoNetworkError::UnknownChat)?;
         let processed = mls!(chat.process_message(&self.provider, protocol_msg))?;
         let sender = BasicCredential::try_from(processed.credential().clone())
             .map(|c| c.identity().to_vec())
@@ -170,6 +172,71 @@ impl Client {
     pub fn chat_ids(&self) -> Vec<Vec<u8>> {
         self.chats.keys().cloned().collect()
     }
+
+    /// full engine state as bytes — caller encrypts + stores it, we don't care where
+    pub fn export_state(&self) -> Result<Vec<u8>, PlutoNetworkError> {
+        let storage = self
+            .provider
+            .storage()
+            .values
+            .read()
+            .map_err(|e| PlutoNetworkError::State(e.to_string()))?
+            .clone();
+        let snap = Snapshot {
+            identity: BasicCredential::try_from(self.credential.credential.clone())
+                .map_err(|e| PlutoNetworkError::State(e.to_string()))?
+                .identity()
+                .to_vec(),
+            signer_public: self.signer.public().to_vec(),
+            storage,
+            chat_ids: self.chat_ids(),
+        };
+        bincode::serialize(&snap).map_err(|e| PlutoNetworkError::State(e.to_string()))
+    }
+
+    /// rebuild a client from export_state() bytes — same device only,
+    /// MLS ratchets don't survive being run in two places
+    pub fn restore(bytes: &[u8]) -> Result<Self, PlutoNetworkError> {
+        let snap: Snapshot =
+            bincode::deserialize(bytes).map_err(|e| PlutoNetworkError::State(e.to_string()))?;
+        let provider = OpenMlsRustCrypto::default();
+        *provider
+            .storage()
+            .values
+            .write()
+            .map_err(|e| PlutoNetworkError::State(e.to_string()))? = snap.storage;
+        let signer = SignatureKeyPair::read(
+            provider.storage(),
+            &snap.signer_public,
+            CIPHERSUITE.signature_algorithm(),
+        )
+        .ok_or_else(|| PlutoNetworkError::State("signer key missing from snapshot".into()))?;
+        let credential = BasicCredential::new(snap.identity);
+        let mut chats = HashMap::new();
+        for id in snap.chat_ids {
+            let group_id = GroupId::from_slice(&id);
+            if let Some(group) = mls!(MlsGroup::load(provider.storage(), &group_id))? {
+                chats.insert(id, group);
+            }
+        }
+        Ok(Self {
+            credential: CredentialWithKey {
+                credential: credential.into(),
+                signature_key: signer.public().into(),
+            },
+            provider,
+            signer,
+            chats,
+        })
+    }
+}
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct Snapshot {
+    identity: Vec<u8>,
+    signer_public: Vec<u8>,
+    storage: HashMap<Vec<u8>, Vec<u8>>,
+    chat_ids: Vec<Vec<u8>>,
 }
 
 #[cfg(test)]
@@ -239,6 +306,35 @@ mod tests {
             Ok(r) => assert!(r.is_err(), "tampered message must not decrypt"),
             Err(_) => {} // panic inside openmls = rejected, fine in debug profile
         }
+    }
+
+    #[test]
+    fn state_survives_export_restore() {
+        let mut alice = Client::new("alice").unwrap();
+        let mut bob = Client::new("bob").unwrap();
+        let chat = alice.create_chat().unwrap();
+        let (_c, welcome) = alice.invite(&chat, &bob.key_package().unwrap()).unwrap();
+        bob.join(&welcome).unwrap();
+
+        let wire = alice.send(&chat, b"before the restart").unwrap();
+        assert_eq!(bob.recv(&wire).unwrap().plaintext.unwrap(), b"before the restart");
+
+        // bob's browser "restarts"
+        let snap = bob.export_state().unwrap();
+        drop(bob);
+        let mut bob = Client::restore(&snap).unwrap();
+        assert_eq!(bob.chat_ids(), vec![chat.clone()]);
+
+        // both directions still work on the restored ratchet
+        let wire = alice.send(&chat, b"after").unwrap();
+        assert_eq!(bob.recv(&wire).unwrap().plaintext.unwrap(), b"after");
+        let wire = bob.send(&chat, b"still here").unwrap();
+        let got = alice.recv(&wire).unwrap();
+        assert_eq!(got.plaintext.unwrap(), b"still here");
+        assert_eq!(got.sender, b"bob");
+
+        // restored client can still publish key packages
+        assert!(bob.key_package().unwrap().len() > 0);
     }
 
     #[test]

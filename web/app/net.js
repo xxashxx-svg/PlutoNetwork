@@ -1,7 +1,12 @@
 // relay plumbing. the relay only ever sees base64 ciphertext.
 
-const HTTP = "http://localhost:4000";
-const WS = "ws://localhost:4000";
+// in production the relay serves this page, so everything is same-origin.
+// local dev (client on :8080, relay on :4000) is the one special case.
+const DEV = location.port === "8080";
+const HTTP = DEV ? "http://localhost:4000" : "";
+const WS = DEV
+  ? "ws://localhost:4000"
+  : (location.protocol === "https:" ? "wss://" : "ws://") + location.host;
 
 let TOKEN = null;
 export const setToken = (t) => (TOKEN = t);
@@ -24,7 +29,10 @@ export async function whoami(token) {
   return (await r.json()).user;
 }
 
-export const publishKeyPackage = (kp) => post("/keypackages", { key_package: kp });
+export const publishKeyPackage = (kp, reset = false) => post("/keypackages", { key_package: kp, reset });
+
+// old/new are derived auth keys; the real password never leaves the device
+export const changePassword = (oldKey, newKey) => post("/password", { old: oldKey, new: newKey });
 
 export async function grabKeyPackage(user) {
   const r = await fetch(`${HTTP}/keypackages/${encodeURIComponent(user)}`, {
@@ -32,6 +40,37 @@ export async function grabKeyPackage(user) {
   });
   if (!r.ok) return null;
   return (await r.json()).key_package;
+}
+
+// ---- encrypted blobs + history vault (relay stores ciphertext only) ----
+
+const authHeader = () => ({ authorization: `Bearer ${TOKEN}` });
+
+export async function uploadBlob(bytes) {
+  const r = await fetch(`${HTTP}/blobs`, {
+    method: "POST",
+    headers: { ...authHeader(), "content-type": "application/octet-stream" },
+    body: bytes,
+  });
+  if (!r.ok) throw new Error("upload failed");
+  return r.json();
+}
+
+export async function fetchBlob(id) {
+  const r = await fetch(`${HTTP}/blobs/${encodeURIComponent(id)}`, { headers: authHeader() });
+  if (!r.ok) throw new Error("blob fetch failed");
+  return new Uint8Array(await r.arrayBuffer());
+}
+
+export async function putVault(sealed) {
+  const r = await fetch(`${HTTP}/vault`, { method: "PUT", headers: authHeader(), body: sealed });
+  if (!r.ok) throw new Error("vault upload failed");
+}
+
+export async function getVault() {
+  const r = await fetch(`${HTTP}/vault`, { headers: authHeader() });
+  if (!r.ok) return null;
+  return new Uint8Array(await r.arrayBuffer());
 }
 
 export function connect(onFrame, onDrop) {
@@ -45,7 +84,7 @@ export function connect(onFrame, onDrop) {
       }, 25_000);
       resolve(ws);
     };
-    ws.onerror = () => reject(new Error("Can't reach the server — is it running?"));
+    ws.onerror = () => reject(new Error("Can't reach the server. Is it running?"));
     ws.onclose = () => {
       clearInterval(ws._beat);
       onDrop && onDrop();

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>veil — wasm round-trip demo</title>
+  <title>PlutoNetwork — wasm round-trip demo</title>
   <style>
     body { font-family: ui-monospace, monospace; background: #0d1117; color: #c9d1d9; max-width: 720px; margin: 40px auto; padding: 0 16px; }
     h1 { font-size: 1.2rem; }
@@ -12,13 +12,13 @@
   </style>
 </head>
 <body>
-  <h1>veil wasm demo — two clients, one page, zero plaintext on the wire</h1>
+  <h1>PlutoNetwork wasm demo — two clients, one page, zero plaintext on the wire</h1>
   <div id="log" class="log">loading wasm…</div>
 
   <script type="module">
-    // build first: wasm-pack build crates/veil-wasm --target web
+    // build first: wasm-pack build crates/plutonetwork-wasm --target web
     // then serve the repo root: npx serve .  (or python -m http.server)
-    import init, { VeilClient } from "../crates/veil-wasm/pkg/veil_wasm.js";
+    import init, { PlutoNetworkClient } from "../crates/plutonetwork-wasm/pkg/plutonetwork_wasm.js";
 
     const log = (msg, cls = "") => {
       const el = document.getElementById("log");
@@ -30,8 +30,8 @@
       await init();
       document.getElementById("log").textContent = "wasm loaded ✔";
 
-      const alice = new VeilClient("alice");
-      const bob = new VeilClient("bob");
+      const alice = new PlutoNetworkClient("alice");
+      const bob = new PlutoNetworkClient("bob");
       log("made alice + bob");
 
       const chatId = alice.create_chat();

@@ -1,4 +1,4 @@
-defmodule VeilRelay.Socket do
+defmodule PlutoNetworkRelay.Socket do
   # one process per connected client. registers under the user id,
   # drains their mailbox on connect, then just routes opaque blobs.
   # the relay never looks inside a blob — it can't, it's ciphertext.
@@ -6,8 +6,8 @@ defmodule VeilRelay.Socket do
 
   @impl true
   def init(%{user: user}) do
-    Registry.register(VeilRelay.Conns, user, nil)
-    queued = VeilRelay.Store.drain(user) |> Enum.map(&{:text, &1})
+    Registry.register(PlutoNetworkRelay.Conns, user, nil)
+    queued = PlutoNetworkRelay.Store.drain(user) |> Enum.map(&{:text, &1})
     {:push, queued, %{user: user}}
   end
 
@@ -47,9 +47,9 @@ defmodule VeilRelay.Socket do
   def terminate(_reason, _state), do: :ok
 
   defp deliver(user, frame) do
-    case Registry.lookup(VeilRelay.Conns, user) do
+    case Registry.lookup(PlutoNetworkRelay.Conns, user) do
       [{pid, _}] -> send(pid, {:deliver, frame})
-      [] -> VeilRelay.Store.stash(user, frame)
+      [] -> PlutoNetworkRelay.Store.stash(user, frame)
     end
   end
 end

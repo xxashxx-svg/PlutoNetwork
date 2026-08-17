@@ -1,7 +1,7 @@
-defmodule VeilRelay.Auth do
+defmodule PlutoNetworkRelay.Auth do
   # accounts + tokens. passwords are pbkdf2-sha256 (100k rounds, per-user salt)
   # via OTP's :crypto — no native deps to compile.
-  alias VeilRelay.Store
+  alias PlutoNetworkRelay.Store
 
   @name_re ~r/^[a-z0-9_]{2,24}$/
 
@@ -40,6 +40,30 @@ defmodule VeilRelay.Auth do
   end
 
   def login(_, _), do: {:error, "bad request"}
+
+  def change_password(user, old, new) when is_binary(old) and is_binary(new) do
+    cond do
+      byte_size(new) < 6 ->
+        {:error, "password needs at least 6 characters"}
+
+      true ->
+        case Store.get_user(user) do
+          nil ->
+            {:error, "no such account"}
+
+          {salt, stored} ->
+            if :crypto.hash_equals(hash(old, salt), stored) do
+              new_salt = :crypto.strong_rand_bytes(16)
+              Store.put_user(user, new_salt, hash(new, new_salt))
+              :ok
+            else
+              {:error, "current password is wrong"}
+            end
+        end
+    end
+  end
+
+  def change_password(_, _, _), do: {:error, "bad request"}
 
   defp issue(user) do
     token = Base.url_encode64(:crypto.strong_rand_bytes(24), padding: false)

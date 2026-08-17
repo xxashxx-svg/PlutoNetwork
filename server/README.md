@@ -1,4 +1,4 @@
-# veil relay
+# PlutoNetwork relay
 
 Zero-knowledge relay with accounts. Stores password hashes, public key
 packages and queued ciphertext — never message content.

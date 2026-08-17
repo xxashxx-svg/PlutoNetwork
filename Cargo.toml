@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/veil-core", "crates/veil-wasm"]
+members = ["crates/plutonetwork-core", "crates/plutonetwork-wasm"]
 
 [profile.release]
 opt-level = 3

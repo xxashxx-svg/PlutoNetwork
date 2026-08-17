@@ -3,40 +3,35 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Veil</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+  <title>PlutoNetwork</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="stylesheet" href="style.css?v=2" />
 </head>
 <body>
-  <button id="theme-toggle" title="Toggle dark mode">
-    <svg class="ic-sun" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-      <circle cx="12" cy="12" r="4.5" />
-      <path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8" />
-    </svg>
-    <svg class="ic-moon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
-    </svg>
-  </button>
+  <!-- the Binary mark: Pluto + Charon around a shared barycenter -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="mark" viewBox="0 0 96 96">
+        <ellipse cx="48" cy="48" rx="35" ry="17" fill="none" stroke="var(--mk-ring)" stroke-width="3.4" transform="rotate(-24 48 48)"/>
+        <circle cx="17.5" cy="54.5" r="13.5" fill="var(--mk-1)"/>
+        <circle cx="78.5" cy="41.5" r="7.5" fill="var(--mk-2)"/>
+      </symbol>
+    </defs>
+  </svg>
+
   <!-- sign in -->
   <div id="gate">
     <div class="gate-card">
-      <div class="logo">
-        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <rect x="4" y="10" width="16" height="11" rx="2.5" />
-          <path d="M8 10V7a4 4 0 0 1 8 0v3" />
-        </svg>
-      </div>
-      <h1>Veil</h1>
-      <p class="tagline">Simple, private messaging.<br />Every message is end-to-end encrypted.</p>
+      <div class="logo"><svg><use href="#mark"/></svg></div>
+      <h1>PlutoNetwork</h1>
+      <p class="tagline">Fast, simple, and fully end-to-end encrypted.</p>
       <form id="gate-form" autocomplete="off">
         <input id="gate-name" type="text" placeholder="Username" maxlength="24" spellcheck="false" autocomplete="username" required />
         <input id="gate-pass" type="password" placeholder="Password" minlength="6" autocomplete="current-password" required />
         <button type="submit">Sign in</button>
         <button type="button" id="register-btn" class="secondary">Create account</button>
       </form>
-      <p class="gate-hint" id="gate-hint">New here? Create an account — your encryption keys are made on this device and never leave it.</p>
+      <p class="gate-hint" id="gate-hint">Your encryption keys are derived on this device. The server never sees your password or your messages.</p>
     </div>
   </div>
 
@@ -44,39 +39,56 @@
   <main id="shell" hidden>
     <aside id="rail">
       <header class="rail-head">
-        <span class="rail-brand">Veil</span>
+        <span class="brand-mark"><svg><use href="#mark"/></svg></span>
+        <span class="rail-brand">PlutoNetwork</span>
         <span class="rail-tools">
           <span class="conn" id="conn-dot" title="connection status"></span>
+          <button id="settings-btn" class="icon-btn" title="Settings">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
+          <button id="theme-toggle" class="icon-btn" title="Toggle dark mode">
+            <svg class="ic-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <circle cx="12" cy="12" r="4.5" />
+              <path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8" />
+            </svg>
+            <svg class="ic-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+            </svg>
+          </button>
           <button id="signout" class="icon-btn" title="Sign out">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
               <path d="M16 17l5-5-5-5M21 12H9" />
             </svg>
           </button>
         </span>
       </header>
-      <div class="me">
-        <span class="me-label">Signed in as</span>
-        <span class="me-name" id="me-name"></span>
-      </div>
-      <form id="new-chat" autocomplete="off">
-        <input id="new-chat-name" type="text" placeholder="Start a chat — enter a name" spellcheck="false" />
-        <button type="submit" title="Start an encrypted chat">+</button>
-      </form>
-      <nav id="chat-list"></nav>
-      <footer class="rail-foot">
-        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
-          <rect x="4" y="10" width="16" height="11" rx="2.5" />
-          <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+      <div class="rail-search">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="11" cy="11" r="7" />
+          <path d="M20.5 20.5 16 16" />
         </svg>
-        <span>End-to-end encrypted · MLS</span>
-      </footer>
+        <input id="search" type="text" placeholder="Search" spellcheck="false" />
+      </div>
+      <nav id="chat-list"></nav>
+      <form id="new-chat" autocomplete="off" hidden>
+        <input id="new-chat-name" type="text" placeholder="Username to message…" spellcheck="false" />
+        <button type="submit">Start encrypted chat</button>
+      </form>
+      <button id="fab" title="New message">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 20h9" />
+          <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+        </svg>
+      </button>
     </aside>
 
     <section id="convo" class="empty">
       <div id="convo-empty">
-        <p class="big-quiet">Select a chat</p>
-        <p class="small-quiet">or start a new one — all messages are end-to-end encrypted</p>
+        <span class="empty-pill">Select a chat to start messaging</span>
       </div>
       <div id="convo-live" hidden>
         <header id="convo-head">
@@ -88,33 +100,108 @@
             </div>
           </div>
           <div class="head-actions">
-            <button id="add-person" title="Add someone to this chat">Add people</button>
-            <button id="peek-wire" title="What the server actually sees">
-              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+            <button id="add-person" class="icon-btn" title="Add someone to this chat">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M19 8v6M22 11h-6" />
+              </svg>
+            </button>
+            <button id="peek-wire" class="icon-btn" title="What the server actually sees">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
                 <rect x="4" y="10" width="16" height="11" rx="2.5" />
                 <path d="M8 10V7a4 4 0 0 1 8 0v3" />
               </svg>
-              Encryption
             </button>
           </div>
         </header>
         <div id="wire-peek" hidden>
-          <p class="peek-title">What the server sees — latest frames, all opaque ciphertext</p>
+          <p class="peek-title">What the server sees: latest frames, all opaque ciphertext</p>
           <pre id="wire-frames"></pre>
         </div>
         <div id="messages"></div>
+        <div id="dead-banner" hidden>
+          <span>History restored from your encrypted backup. You'll be able to write here again once someone re-adds you to this chat.</span>
+        </div>
         <form id="composer" autocomplete="off">
+          <button type="button" id="attach-btn" class="icon-btn" title="Attach a photo, video or file">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m21.4 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.2-9.19a4 4 0 0 1 5.65 5.66l-9.2 9.19a2 2 0 0 1-2.82-2.83l8.49-8.48" />
+            </svg>
+          </button>
+          <input id="file-input" type="file" multiple hidden />
           <input id="composer-input" type="text" placeholder="Message" spellcheck="false" />
-          <button type="submit" title="Send (encrypted)">
-            <svg viewBox="0 0 24 24" width="19" height="19" fill="currentColor">
+          <button type="submit" id="send-btn" title="Send (encrypted)" hidden>
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
               <path d="M3.4 20.4 21.8 12 3.4 3.6l.01 6.53L15 12 3.41 13.87z" />
             </svg>
           </button>
+          <button type="button" id="mic-btn" class="icon-btn" title="Record a voice message">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="2" width="6" height="12" rx="3" />
+              <path d="M5 10a7 7 0 0 0 14 0M12 17v4" />
+            </svg>
+          </button>
         </form>
+        <div id="rec-bar" hidden>
+          <span class="rec-dot"></span>
+          <span id="rec-time">0:00</span>
+          <span class="rec-hint">Recording voice message…</span>
+          <button type="button" id="rec-cancel">Cancel</button>
+          <button type="button" id="rec-send" title="Send voice message">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+              <path d="M3.4 20.4 21.8 12 3.4 3.6l.01 6.53L15 12 3.41 13.87z" />
+            </svg>
+          </button>
+        </div>
       </div>
     </section>
   </main>
 
-  <script type="module" src="app.js"></script>
+  <div id="lightbox" hidden></div>
+
+  <!-- settings -->
+  <div id="settings-overlay" hidden>
+    <div id="settings">
+      <header class="s-head">
+        <h3>Settings</h3>
+        <button id="settings-close" class="icon-btn" title="Close">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        </button>
+      </header>
+      <div class="s-account">
+        <button type="button" id="avatar-btn" title="Set a profile photo">
+          <span class="avatar" id="s-avatar"></span>
+          <span class="avatar-edit">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
+          </span>
+        </button>
+        <div>
+          <div class="s-name" id="s-name"></div>
+          <div class="s-sub">end-to-end encrypted</div>
+          <button type="button" id="avatar-remove" class="s-remove" hidden>Remove photo</button>
+        </div>
+        <input id="avatar-input" type="file" accept="image/*" hidden />
+      </div>
+      <p class="s-note">Profile photos are re-encoded on your device, so location tags and all other metadata are destroyed. They're end-to-end encrypted; only people you chat with can see them.</p>
+      <div class="s-gap"></div>
+      <form id="pass-form" autocomplete="off">
+        <h4>Change password</h4>
+        <input id="pass-old" type="password" placeholder="Current password" autocomplete="current-password" minlength="6" required />
+        <input id="pass-new" type="password" placeholder="New password" autocomplete="new-password" minlength="6" required />
+        <input id="pass-new2" type="password" placeholder="Repeat new password" autocomplete="new-password" minlength="6" required />
+        <p class="s-warn">Your password unlocks your encryption keys. There is no reset. If you forget it, your message history cannot be recovered.</p>
+        <p id="pass-status" class="s-status" hidden></p>
+        <button type="submit" id="pass-submit">Update password</button>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="app.js?v=2"></script>
 </body>
 </html>

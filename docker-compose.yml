@@ -1,0 +1,11 @@
+services:
+  plutonetwork:
+    build: .
+    ports:
+      - "4000:4000"
+    volumes:
+      - pluto-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  pluto-data:

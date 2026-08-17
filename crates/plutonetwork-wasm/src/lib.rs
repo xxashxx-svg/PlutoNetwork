@@ -1,7 +1,7 @@
-//! Thin wasm-bindgen wrapper around veil-core. No logic lives here —
+//! Thin wasm-bindgen wrapper around plutonetwork-core. No logic lives here —
 //! just byte shuffling between JS and the Rust engine.
 
-use veil_core::Client;
+use plutonetwork_core::Client;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -23,17 +23,39 @@ impl Invite {
 }
 
 #[wasm_bindgen]
-pub struct VeilClient {
+pub struct PlutoNetworkClient {
     inner: Client,
 }
 
 #[wasm_bindgen]
-impl VeilClient {
+impl PlutoNetworkClient {
     #[wasm_bindgen(constructor)]
-    pub fn new(name: &str) -> Result<VeilClient, JsError> {
+    pub fn new(name: &str) -> Result<PlutoNetworkClient, JsError> {
         Ok(Self {
             inner: Client::new(name)?,
         })
+    }
+
+    /// rebuild from export_state() bytes (same device only)
+    pub fn restore(snapshot: &[u8]) -> Result<PlutoNetworkClient, JsError> {
+        Ok(Self {
+            inner: Client::restore(snapshot)?,
+        })
+    }
+
+    pub fn export_state(&self) -> Result<Vec<u8>, JsError> {
+        Ok(self.inner.export_state()?)
+    }
+
+    /// live chat ids as lowercase hex, JSON array — easiest shape to hand JS
+    pub fn chat_ids_hex(&self) -> String {
+        let hex: Vec<String> = self
+            .inner
+            .chat_ids()
+            .iter()
+            .map(|id| id.iter().map(|b| format!("{b:02x}")).collect())
+            .collect();
+        serde_json::to_string(&hex).unwrap_or_else(|_| "[]".into())
     }
 
     pub fn key_package(&self) -> Result<Vec<u8>, JsError> {

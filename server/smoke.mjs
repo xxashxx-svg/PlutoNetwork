@@ -78,6 +78,44 @@ alice.send(JSON.stringify({ to: ["smoke_bob", "smoke_carol"], blob: "ZmFub3V0", 
 await sleep(300);
 check("fan-out + kind", bob.inbox.at(-1)?.kind === "welcome" && carol.inbox.at(-1)?.blob === "ZmFub3V0");
 
+// encrypted media blobs: upload → fetch round-trip, auth enforced
+const blobBytes = new Uint8Array([1, 2, 3, 250, 251, 252]);
+const up = await fetch(`${HTTP}/blobs`, {
+  method: "POST",
+  headers: { authorization: `Bearer ${tokA}`, "content-type": "application/octet-stream" },
+  body: blobBytes,
+});
+const blobId = (await up.json()).id;
+check("blob upload", up.status === 201 && !!blobId);
+const down = await fetch(`${HTTP}/blobs/${blobId}`, { headers: { authorization: `Bearer ${tokB}` } });
+const gotBlob = new Uint8Array(await down.arrayBuffer());
+check("blob round-trip", down.status === 200 && gotBlob.length === blobBytes.length && gotBlob.every((b, i) => b === blobBytes[i]));
+const noBlob = await fetch(`${HTTP}/blobs/${blobId}`);
+check("unauthed blob fetch rejected", noBlob.status === 401);
+
+// history vault: per-user encrypted backup
+const vaultBody = new TextEncoder().encode("ciphertext-vault-v1");
+const vput = await fetch(`${HTTP}/vault`, { method: "PUT", headers: { authorization: `Bearer ${tokA}` }, body: vaultBody });
+check("vault upload", vput.status === 200);
+const vget = await fetch(`${HTTP}/vault`, { headers: { authorization: `Bearer ${tokA}` } });
+check("vault round-trip", vget.status === 200 && new TextDecoder().decode(await vget.arrayBuffer()) === "ciphertext-vault-v1");
+const vno = await fetch(`${HTTP}/vault`, { method: "PUT", body: vaultBody });
+check("unauthed vault rejected", vno.status === 401);
+
+// password change: verified against the old key; old stops working, new works
+const pcUser = `smoke_pc${Date.now() % 1000000}`;
+const pcTok = (await post("/register", { user: pcUser, pass: "first-pass" })).body.token;
+const pcNoAuth = await post("/password", { old: "first-pass", new: "second-pass" });
+check("unauthed password change rejected", pcNoAuth.status === 401);
+const pcWrong = await post("/password", { old: "not-it", new: "second-pass" }, pcTok);
+check("wrong current password rejected", pcWrong.status === 401);
+const pcOk = await post("/password", { old: "first-pass", new: "second-pass" }, pcTok);
+check("password change accepted", pcOk.status === 200);
+const pcOldLogin = await post("/login", { user: pcUser, pass: "first-pass" });
+const pcNewLogin = await post("/login", { user: pcUser, pass: "second-pass" });
+check("old password stops working", pcOldLogin.status === 401);
+check("new password works", pcNewLogin.status === 200);
+
 [alice, bob, carol].forEach((ws) => ws.close());
 const failed = results.filter(([, ok]) => !ok).length;
 console.log(failed === 0 ? "\nall smoke tests passed" : `\n${failed} FAILED`);

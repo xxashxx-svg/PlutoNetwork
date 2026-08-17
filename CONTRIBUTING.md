@@ -2,7 +2,7 @@
 
 PRs welcome. Ground rules, kept short:
 
-- **crypto changes need extra scrutiny** — anything touching `veil-core`
+- **crypto changes need extra scrutiny** — anything touching `plutonetwork-core`
   gets a slower, pickier review than UI work. That's a feature.
 - don't reimplement crypto in JS/Swift/Kotlin. If a platform needs a
   primitive, it goes in the Rust core and gets exposed through bindings.

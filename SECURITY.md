@@ -2,7 +2,7 @@
 
 ## Current status: UNAUDITED
 
-Veil has not had a third-party security audit. Until it does, treat it as a
+PlutoNetwork has not had a third-party security audit. Until it does, treat it as a
 research project — do not rely on it for anything sensitive.
 
 What we do claim today:

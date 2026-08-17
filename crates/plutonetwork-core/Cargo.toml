@@ -1,9 +1,9 @@
 [package]
-name = "veil-core"
+name = "plutonetwork-core"
 version = "0.1.0"
 edition = "2021"
 license = "AGPL-3.0-only"
-description = "MLS-based E2EE engine for Veil"
+description = "MLS-based E2EE engine for PlutoNetwork"
 
 [dependencies]
 openmls = "0.6"
@@ -12,3 +12,5 @@ openmls_basic_credential = "0.3"
 openmls_traits = "0.3"
 tls_codec = "0.4"
 thiserror = "1"
+serde = { version = "1", features = ["derive"] }
+bincode = "1.3"

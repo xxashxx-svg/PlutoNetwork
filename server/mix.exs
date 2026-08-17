@@ -1,9 +1,9 @@
-defmodule VeilRelay.MixProject do
+defmodule PlutoNetworkRelay.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :veil_relay,
+      app: :pluto_network_relay,
       version: "0.1.0",
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
@@ -14,7 +14,7 @@ defmodule VeilRelay.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      mod: {VeilRelay.Application, []}
+      mod: {PlutoNetworkRelay.Application, []}
     ]
   end
 

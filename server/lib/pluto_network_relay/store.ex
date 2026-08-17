@@ -1,4 +1,4 @@
-defmodule VeilRelay.Store do
+defmodule PlutoNetworkRelay.Store do
   # accounts, key packages and mailboxes live in DETS (plain disk storage,
   # built into OTP) so they survive restarts. everything stored is either
   # public key material, ciphertext, or a password hash — never plaintext.
@@ -25,6 +25,8 @@ defmodule VeilRelay.Store do
     end
   end
 
+  def put_user(user, salt, hash), do: :dets.insert(:users, {user, salt, hash})
+
   def get_user(user) do
     case :dets.lookup(:users, user) do
       [{^user, salt, hash}] -> {salt, hash}
@@ -32,13 +34,24 @@ defmodule VeilRelay.Store do
     end
   end
 
-  # tokens
-  def put_token(token, user), do: :ets.insert(:tokens, {token, user})
+  # tokens (30-day expiry)
+  @token_ttl_ms 30 * 24 * 60 * 60 * 1000
+
+  def put_token(token, user),
+    do: :ets.insert(:tokens, {token, user, System.system_time(:millisecond) + @token_ttl_ms})
 
   def token_user(token) when is_binary(token) do
     case :ets.lookup(:tokens, token) do
-      [{^token, user}] -> user
-      [] -> nil
+      [{^token, user, expires}] ->
+        if System.system_time(:millisecond) < expires do
+          user
+        else
+          :ets.delete(:tokens, token)
+          nil
+        end
+
+      [] ->
+        nil
     end
   end
 
@@ -46,6 +59,9 @@ defmodule VeilRelay.Store do
 
   # key packages: publish many, each fetch pops one (they're one-time use)
   def push_key_package(user, kp), do: :dets.insert(:key_packages, {user, kp})
+
+  # a fresh device starts a new identity — its old key packages are useless
+  def clear_key_packages(user), do: :dets.delete(:key_packages, user)
 
   def pop_key_package(user) do
     case :dets.lookup(:key_packages, user) do
